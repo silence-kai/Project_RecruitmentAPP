@@ -66,10 +66,8 @@ class PersonalLogin:
         self.window.title('Hello Job')
         self.width = 800
         self.height = 600
-        self.imagefile = PhotoImage(file=r'backimg.PNG')
         self.var_usr_name = StringVar()
         self.var_usr_pwd = StringVar()
-        self.background_img()
         self.window_postion()
         self.controls_layout()
 
@@ -88,11 +86,6 @@ class PersonalLogin:
             (self.window.winfo_screenheight() - self.height) / 2)
         self.window.geometry(alignstr)
         self.window.resizable(width=False, height=False)
-
-    def background_img(self):
-        canvas = Canvas(self.window, height=1000, width=800)
-        image = canvas.create_image(0, 0, anchor='nw', image=self.imagefile)
-        canvas.pack(side='top')
 
     def user_login(self):
         user_name = self.var_usr_name.get()
@@ -136,10 +129,8 @@ class EnterpriseLogin:
         self.window.title('Hello Job')
         self.width = 800
         self.height = 600
-        self.imagefile = PhotoImage(file=r'e_login_bk.png')
         self.var_usr_name = StringVar()
         self.var_usr_pwd = StringVar()
-        self.background_img()
         self.window_postion()
         self.controls_layout()
 
@@ -158,11 +149,6 @@ class EnterpriseLogin:
             (self.window.winfo_screenheight() - self.height) / 2)
         self.window.geometry(alignstr)
         self.window.resizable(width=False, height=False)
-
-    def background_img(self):
-        canvas = Canvas(self.window, height=1000, width=800)
-        image = canvas.create_image(0, 0, anchor='nw', image=self.imagefile)
-        canvas.pack(side='top')
 
     def user_login(self):
         user_name = self.var_usr_name.get()
