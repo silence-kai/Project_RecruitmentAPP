@@ -1,0 +1,1 @@
+Server accept requests from client, according needs to excute function. 
