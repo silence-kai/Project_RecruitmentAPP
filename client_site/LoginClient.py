@@ -2,6 +2,7 @@ from tkinter import *
 import tkinter.messagebox
 from socket import *
 import sys
+import json
 import time
 import re
 
@@ -11,7 +12,7 @@ hj_sock.connect(ADDR)
 root = Tk()
 root.title('Hello Job')
 
-
+#Home界面，企业和个人登录
 class HomePage:
     def __init__(self, master):
         self.window = master
@@ -58,7 +59,7 @@ class HomePage:
         self.window.destroy()
         hj_sock.close()
 
-
+#个人登录界面
 class PersonalLogin:
     def __init__(self, master):
         self.window = master
@@ -86,6 +87,7 @@ class PersonalLogin:
         self.window.geometry(alignstr)
         self.window.resizable(width=False, height=False)
 
+    #点击登录，检测账号密码是否为空，发送个人登录请求，数据：账号和密码
     def user_login(self):
         user_name = self.var_usr_name.get()
         user_pwd = self.var_usr_pwd.get()
@@ -93,9 +95,11 @@ class PersonalLogin:
             tkinter.messagebox.showinfo(title='Hello Job', message='账号不能为空')
         elif not user_pwd:
             tkinter.messagebox.showinfo(title='Hello Job', message='密码不能为空')
-        hj_sock.send(b"p_login verification,%s,%s" % (user_name.encode(), user_pwd.encode()))
+        data = {"request_type": "p_login verification", "data": {"username": user_name, "password": user_pwd}}
+        hj_sock.send(json.dumps(data).encode())
         self.check_login()
 
+    #接收服务器消息，账号是否存在，密码是否正确，无误就弹出个人操作页面。
     def check_login(self):
         data = hj_sock.recv(1024).decode()
         if data == "user not exist":
@@ -103,13 +107,14 @@ class PersonalLogin:
         elif data == "password error":
             tkinter.messagebox.showinfo(title='Hello Job', message='密码错误')
         elif data == "allow p_login":
-            login_account =self.var_usr_name.get()
+            login_account = self.var_usr_name.get()
             self.window.destroy()
             global pview_tk
             pview_tk = Tk()
-            PersonalView(pview_tk,login_account)
+            PersonalView(pview_tk, login_account)
             pview_tk.mainloop()
 
+    #弹出注册窗口
     def user_register(self):
         PersonalRegister(self.window)
 
@@ -117,7 +122,7 @@ class PersonalLogin:
         self.window.destroy()
         hj_sock.close()
 
-
+#企业登录界面
 class EnterpriseLogin:
     def __init__(self, master):
         self.window = master
@@ -174,7 +179,7 @@ class EnterpriseLogin:
         self.window.destroy()
         hj_sock.close()
 
-
+#个人注册界面
 class PersonalRegister:
     def __init__(self, master):
         self.window = Toplevel(master)
@@ -190,8 +195,8 @@ class PersonalRegister:
 
     def control_layout(self):
         # 标签 用户名密码
-        Label(self.window, text='(请填写邮箱地址)', font=("黑体", 15)).place(x=550, y=200)
-        Label(self.window, text='(密码为8-16位且大小写加数字)', font=("黑体", 15)).place(x=550, y=250)
+        Label(self.window, text='(请填写邮箱地址)', font=("黑体", 15)).place(x=570, y=200)
+        Label(self.window, text='(密码为8-16位且大小写加数字)', font=("黑体", 15)).place(x=570, y=250)
         Label(self.window, text='输入账号:', font=("黑体", 15)).place(x=250, y=200)
         Label(self.window, text='输入密码:', font=("黑体", 15)).place(x=250, y=250)
         Label(self.window, text='确认密码:', font=("黑体", 15)).place(x=250, y=300)
@@ -200,7 +205,7 @@ class PersonalRegister:
         Entry(self.window, textvariable=self.new_pwd, show='*', font=("黑体", 15)).place(x=350, y=250)
         Entry(self.window, textvariable=self.confirm_pwd, show='*', font=("黑体", 15)).place(x=350, y=300)
         Entry(self.window, textvariable=self.verify_code, font=("黑体", 15)).place(x=350, y=350)
-        Button(self.window, text="获取验证码", command=self.check_code, font=("黑体", 15)).place(x=570, y=350)
+        Button(self.window, text="获取验证码", command=self.get_reg_code, font=("黑体", 15)).place(x=570, y=350)
         Button(self.window, text="确认", command=self.submit_regist, font=("黑体", 15)).place(x=350, y=450)
         Button(self.window, text="退出", command=self.user_quit, font=("黑体", 15)).place(x=450, y=450)
 
@@ -211,24 +216,31 @@ class PersonalRegister:
         self.window.geometry(alignstr)
         self.window.resizable(width=False, height=False)
 
-    def check_code(self):
-        new_user = self.new_user.get()
-        hj_sock.send(b"mail_register_code,%s" % (new_user.encode()))
+    # 验证码请求，发送注册的邮箱地址
+    def get_reg_code(self):
+        mailaddr = self.new_user.get()
+        data = {"request_type": "mail_register_code",
+                "data": {"mailaddr": mailaddr}}
+        hj_sock.send(json.dumps(data).encode())
         data = hj_sock.recv(1024).decode()
         if data == "mailaddr error":
             tkinter.messagebox.showinfo(title='Hello Job', message='邮箱地址有误')
         if data == "mailaddr ok":
             tkinter.messagebox.showinfo(title='Hello Job', message='验证码已发送')
 
+    #发送提交注册请求，个人账号，密码，验证码
     def submit_regist(self):
         new_user = self.new_user.get()
         new_pwd = self.new_pwd.get()
         confirm_pwd = self.confirm_pwd.get()
         verify_code = self.verify_code.get()
         if self.check_pwd(new_pwd, confirm_pwd):
-            hj_sock.send(b"submit register,%s,%s" % (new_user.encode(), new_pwd.encode()))
+            data = {"request_type": "submit register", "data":
+                {"p_account": new_user, "password": new_pwd, "verify_code": verify_code}}
+            hj_sock.send(json.dumps(data).encode())
             self.check_regist()
 
+    #检查密码是否为空，两次是否一致，是否合规
     def check_pwd(self, new_pwd, confirm_pwd):
         if not new_pwd or not confirm_pwd:
             tkinter.messagebox.showinfo(title='Hello Job', message='密码不能为空')
@@ -242,6 +254,7 @@ class PersonalRegister:
         else:
             return True
 
+    #接收服务回复，账号是否已存在，验证码是否有问题，注册成功，退出窗口
     def check_regist(self):
         data = hj_sock.recv(1024).decode()
         if data == "name exists":
@@ -255,9 +268,9 @@ class PersonalRegister:
     def user_quit(self):
         self.window.destroy()
 
-
+#个人操作界面
 class PersonalView:
-    def __init__(self, master,account):
+    def __init__(self, master, account):
         self.window = master
         self.window.title('Hello Job')
         self.width = 800
@@ -265,6 +278,7 @@ class PersonalView:
         self.window_postion()
         self.control_layout()
         self.account = account
+        self.test= StringVar()
 
     def control_layout(self):
         # 标签 用户名密码
@@ -275,13 +289,14 @@ class PersonalView:
         # Label(self.window, text='确认密码:', font=("黑体", 15)).place(x=250, y=300)
         # Label(self.window, text='验证码:', font=("黑体", 15)).place(x=250, y=350)
         # Entry(self.window, textvariable=self.new_user, font=("黑体", 15)).place(x=350, y=200)
-        # Entry(self.window, textvariable=self.new_pwd, show='*', font=("黑体", 15)).place(x=350, y=250)
+        # Entry(self.window, textvariable=self.new_pwd, font=("黑体", 15)).place(x=350, y=250)
         # Entry(self.window, textvariable=self.confirm_pwd, show='*', font=("黑体", 15)).place(x=350, y=300)
         # Entry(self.window, textvariable=self.verify_code, font=("黑体", 15)).place(x=350, y=350)
-        # Button(self.window, text="获取验证码", command=self.check_code, font=("黑体", 15)).place(x=570, y=350)
-        # Button(self.window, text="确认", command=self.submit_regist, font=("黑体", 15)).place(x=350, y=450)
-        # Button(self.window, text="退出", command=self.user_quit, font=("黑体", 15)).place(x=450, y=450)
+        Button(self.window, text="完善信息", command=self.complete_info, font=("黑体", 15)).place(x=570, y=350)
+        Button(self.window, text="查询工作", command=self.find_job, font=("黑体", 15)).place(x=350, y=450)
+        Button(self.window, text="退出", command=self.user_quit, font=("黑体", 15)).place(x=450, y=450)
         pass
+
     def window_postion(self):
         alignstr = '%dx%d+%d+%d' % (
             self.width, self.height, (self.window.winfo_screenwidth() - self.width) / 2,
@@ -289,7 +304,70 @@ class PersonalView:
         self.window.geometry(alignstr)
         self.window.resizable(width=False, height=False)
 
+    def user_quit(self):
+        self.window.destroy()
+        hj_sock.close()
 
+    # 查询工作，按条件，公司名，薪资，岗位
+    def find_job(self):
+        pass
+
+    # 完善个人信息，登录登出时间，期望薪资，期望职位
+    def complete_info(self):
+        PersonalInfo(self.window)
+
+# 提交个人信息界面
+class PersonalInfo:
+    def __init__(self, master):
+        self.window = Toplevel(master)
+        self.window.title('Complete Personal Information')
+        self.width = 600
+        self.height = 400
+        self.person_name = StringVar()
+        self.expected_salary = StringVar()
+        self.expected_postion = StringVar()
+        self.control_layout()
+        self.window_postion()
+
+    def control_layout(self):
+        Label(self.window, text='个人姓名:', font=("黑体", 15)).place(x=150, y=100)
+        Label(self.window, text='期望工资:', font=("黑体", 15)).place(x=150, y=150)
+        Label(self.window, text='期望岗位:', font=("黑体", 15)).place(x=150, y=200)
+        Entry(self.window, textvariable=self.person_name, font=("黑体", 15)).place(x=250, y=100)
+        Entry(self.window, textvariable=self.expected_salary, font=("黑体", 15)).place(x=250, y=150)
+        Entry(self.window, textvariable=self.expected_postion, font=("黑体", 15)).place(x=250, y=200)
+        Button(self.window, text="提交", command=self.submit_info, font=("黑体", 15)).place(x=250, y=280)
+        Button(self.window, text="退出", command=self.user_quit, font=("黑体", 15)).place(x=350, y=280)
+
+    def window_postion(self):
+        alignstr = '%dx%d+%d+%d' % (
+            self.width, self.height, (self.window.winfo_screenwidth() - self.width) / 2,
+            (self.window.winfo_screenheight() - self.height) / 2)
+        self.window.geometry(alignstr)
+        self.window.resizable(width=False, height=False)
+
+    #提交个人信息
+    def submit_info(self):
+        expected_salary = self.expected_salary.get()
+        expected_postion = self.expected_postion.get()
+        data = {"request_type": "submit register", "data":
+            {"account": self.person_name, "expected_salary": expected_salary, "expected_postion": expected_postion}}
+        hj_sock.send(json.dumps(data).encode())
+
+    #确认是否提交成功
+    def confirm_submit(self):
+        data = hj_sock.recv(1024).decode()
+        if data == "submit_info_success":
+            tkinter.messagebox.showinfo(title='Hello Job', message='提交成功')
+            self.window.destroy()
+        if data == "submit_info_failed":
+            tkinter.messagebox.showinfo(title='Hello Job', message='提交失败')
+
+    def user_quit(self):
+        self.window.destroy()
+        hj_sock.close()
+
+#企业操作界面
 class EnterpriselView:
     def __init__(self, master):
         self.window = master
@@ -300,5 +378,7 @@ class EnterpriselView:
         self.var_usr_pwd = StringVar()
 
 
-PersonalView(root,"asd")
+# HomePage(root)
+# PersonalView(root, "asd")
+PersonalInfo(root)
 root.mainloop()
