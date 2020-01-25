@@ -52,14 +52,14 @@ class HelloJobServer(Thread):
     def run(self):
         # 循环接受请求
         while True:
-            data = self.connfd.recv(1024).decode()
+            data = self.connfd.recv(1024*1024).decode()
             print("Request:", data)
             client_request = json.loads(data)
             print(client_request)
             if not data:
                 return
-            #登陆确认，账号是否存在，密码石头正确
-            elif client_request["request_type"] == "login_verification":
+            #登陆确认，账号是否存在，密码石头正确,没问题就允许登陆
+            elif client_request["request_type"] == "p_login_verification":
                 pass
             #确认注册的邮箱地址是否正确，并发送验证码
             elif client_request["request_type"] == "mail_register_code":
@@ -69,15 +69,17 @@ class HelloJobServer(Thread):
                     self.connfd.send(b"mailaddr ok")
                 else:
                     self.connfd.send(b"mailaddr error")
-            #确认注册成功，然后将账号密码存入数据库
+            #确认验证码是否正确，确认账号是否存在，密码是否正确，都正确则将注册信息存入数据库。
             elif client_request["request_type"] == "submit_register":
                 print(self.random_code)
                 if self.random_code == client_request["data"]["verify_code"]:
                     print("注册成功")
-                    # Mysql储存client_request账号(邮箱地址)  孙国建
                     self.connfd.send("register_success".encode())
                 else:
                     self.connfd.send("code_error".encode())
+            #完善信息，接收个人信息和简历
+            elif client_request["request_type"] == "p_submit_info":
+               print("把完善的个人信息写入数据库")
 
 class HelloJob:
     pass

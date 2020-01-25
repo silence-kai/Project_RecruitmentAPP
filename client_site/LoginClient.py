@@ -362,18 +362,13 @@ class PersonalInfo:
         self.window.geometry(alignstr)
         self.window.resizable(width=False, height=False)
 
-    # 确认提交个人信息
+    # 确认提交个人信息,包括简历
     def submit_info(self):
         expected_salary = self.expected_salary.get()
         expected_postion = self.expected_postion.get()
         person_name = self.person_name.get()
-        print(person_name)
-        print(expected_postion)
-        print(expected_salary)
-        print(self.resume_conent)
         data = {"request_type": "p_submit_info", "data":
             {"account":self.account,"name":person_name,"expected_salary": expected_salary, "expected_postion": expected_postion,"resume":self.resume_conent}}
-
         hj_sock.send(json.dumps(data).encode())
 
     # 确认是否提交成功
