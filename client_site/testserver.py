@@ -19,12 +19,12 @@ HOST = '0.0.0.0'
 PORT = 8402
 ADDR = (HOST, PORT)
 # mysql
-# db = pymysql.connect(host="localhost",
-#                      port=3306,
-#                      user="root",
-#                      password="kai199418",
-#                      database="school",
-#                      charset="utf8")
+db = pymysql.connect(host="localhost",
+                     port=3306,
+                     user="root",
+                     password="kai199418",
+                     database="recruitment",
+                     charset="utf8")
 
 # 文件处理功能
 class HelloJobServer(Thread):

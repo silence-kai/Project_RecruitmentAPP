@@ -1,5 +1,6 @@
 from tkinter import *
 import tkinter.messagebox
+import tkinter.filedialog
 from socket import *
 import sys
 import json
@@ -12,7 +13,8 @@ hj_sock.connect(ADDR)
 root = Tk()
 root.title('Hello Job')
 
-#Home界面，企业和个人登录
+
+# Home界面，企业和个人登录
 class HomePage:
     def __init__(self, master):
         self.window = master
@@ -59,7 +61,8 @@ class HomePage:
         self.window.destroy()
         hj_sock.close()
 
-#个人登录界面
+
+# 个人登录界面
 class PersonalLogin:
     def __init__(self, master):
         self.window = master
@@ -87,7 +90,7 @@ class PersonalLogin:
         self.window.geometry(alignstr)
         self.window.resizable(width=False, height=False)
 
-    #点击登录，检测账号密码是否为空，发送个人登录请求，数据：账号和密码
+    # 点击登录，检测账号密码是否为空，发送个人登录请求，数据：账号和密码
     def user_login(self):
         user_name = self.var_usr_name.get()
         user_pwd = self.var_usr_pwd.get()
@@ -99,7 +102,7 @@ class PersonalLogin:
         hj_sock.send(json.dumps(data).encode())
         self.check_login()
 
-    #接收服务器消息，账号是否存在，密码是否正确，无误就弹出个人操作页面。
+    # 接收服务器消息，账号是否存在，密码是否正确，无误就弹出个人操作页面。
     def check_login(self):
         data = hj_sock.recv(1024).decode()
         if data == "user_not_exist":
@@ -114,7 +117,7 @@ class PersonalLogin:
             PersonalView(pview_tk, login_account)
             pview_tk.mainloop()
 
-    #弹出注册窗口
+    # 弹出注册窗口
     def user_register(self):
         PersonalRegister(self.window)
 
@@ -122,7 +125,8 @@ class PersonalLogin:
         self.window.destroy()
         hj_sock.close()
 
-#企业登录界面
+
+# 企业登录界面
 class EnterpriseLogin:
     def __init__(self, master):
         self.window = master
@@ -179,7 +183,8 @@ class EnterpriseLogin:
         self.window.destroy()
         hj_sock.close()
 
-#个人注册界面
+
+# 个人注册界面
 class PersonalRegister:
     def __init__(self, master):
         self.window = Toplevel(master)
@@ -228,7 +233,7 @@ class PersonalRegister:
         if data == "mailaddr_ok":
             tkinter.messagebox.showinfo(title='Hello Job', message='验证码已发送')
 
-    #发送提交注册请求，个人账号，密码，验证码
+    # 发送提交注册请求，个人账号，密码，验证码
     def submit_regist(self):
         new_user = self.new_user.get()
         new_pwd = self.new_pwd.get()
@@ -240,7 +245,7 @@ class PersonalRegister:
             hj_sock.send(json.dumps(data).encode())
             self.check_regist()
 
-    #检查密码是否为空，两次是否一致，是否合规
+    # 检查密码是否为空，两次是否一致，是否合规
     def check_pwd(self, new_pwd, confirm_pwd):
         if not new_pwd or not confirm_pwd:
             tkinter.messagebox.showinfo(title='Hello Job', message='密码不能为空')
@@ -254,7 +259,7 @@ class PersonalRegister:
         else:
             return True
 
-    #接收服务回复，账号是否已存在，验证码是否有问题，注册成功，退出窗口
+    # 接收服务回复，账号是否已存在，验证码是否有问题，注册成功，退出窗口
     def check_regist(self):
         data = hj_sock.recv(1024).decode()
         if data == "name_exists":
@@ -268,18 +273,19 @@ class PersonalRegister:
     def user_quit(self):
         self.window.destroy()
 
-#个人操作界面
+
+# 个人操作界面
 class PersonalView:
     def __init__(self, master, account):
         self.window = master
         self.window = Toplevel(master)
         self.window.title('Hello Job')
-        self.width = 800
-        self.height = 600
+        self.width = 1200
+        self.height = 800
         self.window_postion()
         self.control_layout()
         self.account = account
-        self.test= StringVar()
+        self.test = StringVar()
 
     def control_layout(self):
         # 标签 用户名密码
@@ -315,11 +321,14 @@ class PersonalView:
 
     # 完善个人信息，登录登出时间，期望薪资，期望职位
     def complete_info(self):
-        PersonalInfo(self.window)
+        PersonalInfo(self.window,self.account)
+
 
 # 提交个人信息界面
 class PersonalInfo:
-    def __init__(self, master):
+
+    def __init__(self, master,account):
+        self.account = account
         self.window = Toplevel(master)
         self.window.title('Complete Personal Information')
         self.width = 600
@@ -329,14 +338,20 @@ class PersonalInfo:
         self.expected_postion = StringVar()
         self.control_layout()
         self.window_postion()
+        self.resume_conent = None
 
     def control_layout(self):
-        Label(self.window, text='个人姓名:', font=("黑体", 15)).place(x=150, y=100)
-        Label(self.window, text='期望工资:', font=("黑体", 15)).place(x=150, y=150)
-        Label(self.window, text='期望岗位:', font=("黑体", 15)).place(x=150, y=200)
-        Entry(self.window, textvariable=self.person_name, font=("黑体", 15)).place(x=250, y=100)
-        Entry(self.window, textvariable=self.expected_salary, font=("黑体", 15)).place(x=250, y=150)
-        Entry(self.window, textvariable=self.expected_postion, font=("黑体", 15)).place(x=250, y=200)
+        Label(self.window, text='个人姓名:', font=("黑体", 15)).place(x=150, y=80)
+        Label(self.window, text='期望工资:', font=("黑体", 15)).place(x=150, y=120)
+        Label(self.window, text='期望岗位:', font=("黑体", 15)).place(x=150, y=160)
+        Label(self.window, text='上传简历:', font=("黑体", 15)).place(x=150, y=200)
+        Entry(self.window, textvariable=self.person_name, font=("黑体", 15)).place(x=250, y=80)
+        Entry(self.window, textvariable=self.expected_salary, font=("黑体", 15)).place(x=250, y=120)
+        Entry(self.window, textvariable=self.expected_postion, font=("黑体", 15)).place(x=250, y=160)
+        self.resume_path = Entry(self.window, width='20', font=("黑体", 15))
+        self.resume_path.grid(row=0, column=1)
+        self.resume_path.place(x=250, y=200)
+        Button(self.window, text="选择文件", command=self.select_file, font=("黑体", 15)).place(x=460, y=200)
         Button(self.window, text="提交", command=self.submit_info, font=("黑体", 15)).place(x=250, y=280)
         Button(self.window, text="退出", command=self.user_quit, font=("黑体", 15)).place(x=350, y=280)
 
@@ -347,15 +362,21 @@ class PersonalInfo:
         self.window.geometry(alignstr)
         self.window.resizable(width=False, height=False)
 
-    #提交个人信息
+    # 确认提交个人信息
     def submit_info(self):
         expected_salary = self.expected_salary.get()
         expected_postion = self.expected_postion.get()
+        person_name = self.person_name.get()
+        print(person_name)
+        print(expected_postion)
+        print(expected_salary)
+        print(self.resume_conent)
         data = {"request_type": "p_submit_info", "data":
-            {"account": self.person_name, "expected_salary": expected_salary, "expected_postion": expected_postion}}
+            {"account":self.account,"name":person_name,"expected_salary": expected_salary, "expected_postion": expected_postion,"resume":self.resume_conent}}
+
         hj_sock.send(json.dumps(data).encode())
 
-    #确认是否提交成功
+    # 确认是否提交成功
     def confirm_submit(self):
         data = hj_sock.recv(1024).decode()
         if data == "submit_info_success":
@@ -364,11 +385,22 @@ class PersonalInfo:
         if data == "submit_info_failed":
             tkinter.messagebox.showinfo(title='Hello Job', message='提交失败')
 
+    # 选择简历文件
+    def select_file(self):
+        selectfile = tkinter.filedialog.askopenfilename()
+        self.resume_path.insert(0, selectfile)
+        self.read_resume(selectfile)
+
+    # 读取选择文件中的内容
+    def read_resume(self, file_path):
+        f = open(file_path, "r",encoding="utf-8")
+        self.resume_conent = f.read()
+
     def user_quit(self):
         self.window.destroy()
-        hj_sock.close()
 
-#企业操作界面
+
+# 企业操作界面
 class EnterpriselView:
     def __init__(self, master):
         self.window = master
@@ -380,6 +412,6 @@ class EnterpriselView:
 
 
 # HomePage(root)
-# PersonalView(root, "asd")
-PersonalInfo(root)
+PersonalView(root, "asd")
+# PersonalInfo(root)
 root.mainloop()

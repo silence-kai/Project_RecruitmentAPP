@@ -11,10 +11,9 @@ import os
 from time import sleep
 import json
 
-from MailModule import MailCode
+from server_site.mailtask import MailCode
 import random
 import pymysql
-from MysqlModule import *
 
 # 全局变量
 HOST = '0.0.0.0'
@@ -59,8 +58,10 @@ class HelloJobServer(Thread):
             print(client_request)
             if not data:
                 return
+            #登陆确认，账号是否存在，密码石头正确
             elif client_request["request_type"] == "login_verification":
                 pass
+            #确认注册的邮箱地址是否正确，并发送验证码
             elif client_request["request_type"] == "mail_register_code":
                 self.random_code = self.verify_code()
                 print(self.random_code)
@@ -68,14 +69,15 @@ class HelloJobServer(Thread):
                     self.connfd.send(b"mailaddr ok")
                 else:
                     self.connfd.send(b"mailaddr error")
-            elif client_request["request_type"] == "submit register":
+            #确认注册成功，然后将账号密码存入数据库
+            elif client_request["request_type"] == "submit_register":
                 print(self.random_code)
                 if self.random_code == client_request["data"]["verify_code"]:
                     print("注册成功")
                     # Mysql储存client_request账号(邮箱地址)  孙国建
-                    self.connfd.send("register success".encode())
+                    self.connfd.send("register_success".encode())
                 else:
-                    self.connfd.send("code error".encode())
+                    self.connfd.send("code_error".encode())
 
 class HelloJob:
     pass
