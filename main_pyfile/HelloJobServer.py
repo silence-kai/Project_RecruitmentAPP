@@ -9,7 +9,7 @@ from threading import Thread
 import sys
 import os
 from time import sleep
-from sendmail import MailCode
+from server_site.mailtask  import MailCode
 import random
 import pymysql
 
@@ -19,12 +19,12 @@ HOST = '0.0.0.0'
 PORT = 8402
 ADDR = (HOST, PORT)
 # mysql
-# db = pymysql.connect(host="localhost",
-#                      port=3306,
-#                      user="root",
-#                      password="kai199418",
-#                      database="school",
-#                      charset="utf8")
+db = pymysql.connect(host="localhost",
+                     port=3306,
+                     user="root",
+                     password="kai199418",
+                     database="school",
+                     charset="utf8")
 
 # 文件处理功能
 class HelloJobServer(Thread):
@@ -49,7 +49,7 @@ class HelloJobServer(Thread):
             print(client_request)
             if not data:
                 return
-            if client_request[0] == "login verification":
+            if client_request[0] == "p_login_verification":
                 pass
             if client_request[0] == "mail_register_code":
                 self.random_code = self.verify_code()

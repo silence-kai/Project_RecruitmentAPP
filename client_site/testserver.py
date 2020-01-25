@@ -9,26 +9,22 @@ from threading import Thread
 import sys
 import os
 from time import sleep
-import json
-
-from MailModule import MailCode
+from server_site.mailtask  import MailCode
 import random
 import pymysql
-from MysqlModule import *
+
 
 # 全局变量
 HOST = '0.0.0.0'
 PORT = 8402
 ADDR = (HOST, PORT)
 # mysql
-
 # db = pymysql.connect(host="localhost",
 #                      port=3306,
 #                      user="root",
 #                      password="kai199418",
 #                      database="school",
 #                      charset="utf8")
-
 
 # 文件处理功能
 class HelloJobServer(Thread):
@@ -42,12 +38,6 @@ class HelloJobServer(Thread):
         for i in range(6):
             str_code += str(random.randint(0, 9))
         return str_code
-    #
-    # def login_verification(self):
-    #     if MysqlHandle(db).fun01() == None:
-    #         self.connfd.send(b"user not exits")
-    #     else:
-    #         self.connfd.send(b"user login OK")
 
     # 处理客户端请求
     def run(self):
@@ -55,22 +45,22 @@ class HelloJobServer(Thread):
         while True:
             data = self.connfd.recv(1024).decode()
             print("Request:", data)
-            client_request = json.loads(data)
+            client_request = data.split(",")
             print(client_request)
             if not data:
                 return
-            elif client_request["request_type"] == "login_verification":
+            if client_request[0] == "p_login_verification":
                 pass
-            elif client_request["request_type"] == "mail_register_code":
+            if client_request[0] == "mail_register_code":
                 self.random_code = self.verify_code()
                 print(self.random_code)
-                if MailCode(client_request["data"]["mailaddr"], self.random_code).mail_task():
+                if MailCode(client_request[1], self.random_code).mail_task():
                     self.connfd.send(b"mailaddr ok")
                 else:
                     self.connfd.send(b"mailaddr error")
-            elif client_request["request_type"] == "submit register":
+            if client_request[0] == "submit register":
                 print(self.random_code)
-                if self.random_code == client_request["data"]["verify_code"]:
+                if self.random_code == client_request[3]:
                     print("注册成功")
                     # Mysql储存client_request账号(邮箱地址)  孙国建
                     self.connfd.send("register success".encode())

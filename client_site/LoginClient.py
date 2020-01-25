@@ -95,18 +95,18 @@ class PersonalLogin:
             tkinter.messagebox.showinfo(title='Hello Job', message='账号不能为空')
         elif not user_pwd:
             tkinter.messagebox.showinfo(title='Hello Job', message='密码不能为空')
-        data = {"request_type": "p_login verification", "data": {"username": user_name, "password": user_pwd}}
+        data = {"request_type": "p_login_verification", "data": {"username": user_name, "password": user_pwd}}
         hj_sock.send(json.dumps(data).encode())
         self.check_login()
 
     #接收服务器消息，账号是否存在，密码是否正确，无误就弹出个人操作页面。
     def check_login(self):
         data = hj_sock.recv(1024).decode()
-        if data == "user not exist":
+        if data == "user_not_exist":
             tkinter.messagebox.showinfo(title='Hello Job', message='账号不存在')
-        elif data == "password error":
+        elif data == "password_error":
             tkinter.messagebox.showinfo(title='Hello Job', message='密码错误')
-        elif data == "allow p_login":
+        elif data == "allow_p_login":
             login_account = self.var_usr_name.get()
             self.window.destroy()
             global pview_tk
@@ -223,9 +223,9 @@ class PersonalRegister:
                 "data": {"mailaddr": mailaddr}}
         hj_sock.send(json.dumps(data).encode())
         data = hj_sock.recv(1024).decode()
-        if data == "mailaddr error":
+        if data == "mailaddr_error":
             tkinter.messagebox.showinfo(title='Hello Job', message='邮箱地址有误')
-        if data == "mailaddr ok":
+        if data == "mailaddr_ok":
             tkinter.messagebox.showinfo(title='Hello Job', message='验证码已发送')
 
     #发送提交注册请求，个人账号，密码，验证码
@@ -235,7 +235,7 @@ class PersonalRegister:
         confirm_pwd = self.confirm_pwd.get()
         verify_code = self.verify_code.get()
         if self.check_pwd(new_pwd, confirm_pwd):
-            data = {"request_type": "submit register", "data":
+            data = {"request_type": "submit_register", "data":
                 {"p_account": new_user, "password": new_pwd, "verify_code": verify_code}}
             hj_sock.send(json.dumps(data).encode())
             self.check_regist()
@@ -257,12 +257,12 @@ class PersonalRegister:
     #接收服务回复，账号是否已存在，验证码是否有问题，注册成功，退出窗口
     def check_regist(self):
         data = hj_sock.recv(1024).decode()
-        if data == "name exists":
+        if data == "name_exists":
             tkinter.messagebox.showinfo(title='Hello Job', message='账号已被注册')
-        if data == "register success":
+        if data == "register_success":
             tkinter.messagebox.showinfo(title='Hello Job', message='注册成功')
             self.window.destroy()
-        if data == "code error":
+        if data == "code_error":
             tkinter.messagebox.showinfo(title='Hello Job', message='验证码有误')
 
     def user_quit(self):
@@ -272,6 +272,7 @@ class PersonalRegister:
 class PersonalView:
     def __init__(self, master, account):
         self.window = master
+        self.window = Toplevel(master)
         self.window.title('Hello Job')
         self.width = 800
         self.height = 600
@@ -350,7 +351,7 @@ class PersonalInfo:
     def submit_info(self):
         expected_salary = self.expected_salary.get()
         expected_postion = self.expected_postion.get()
-        data = {"request_type": "submit register", "data":
+        data = {"request_type": "p_submit_info", "data":
             {"account": self.person_name, "expected_salary": expected_salary, "expected_postion": expected_postion}}
         hj_sock.send(json.dumps(data).encode())
 
