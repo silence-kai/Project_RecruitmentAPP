@@ -302,14 +302,15 @@ class PersonalView:
     # 将返回的结果写入列表
     def insert_jobdata(self):
         for i in range(20):
-            li = ["工程师", "百度科技有限公司", "20000", "吃喝玩乐", i]
+            li = ["工程师", "百度科技有限公司", "20000", "吃喝玩乐", "迪丽热巴"]
             self.data_tree.insert('', 'end', values=li)
 
-    def treeviewClick(self, event):  # 单击
+    # 双击HR聊天
+    def treeviewClick(self, event):
         for item in self.data_tree.selection():
             item_text = self.data_tree.item(item, "values")
-            print(item_text[4])
-
+            print(item_text)
+            ChatClient(self.window, self.account, item_text)
 
     def user_quit(self):
         self.window.destroy()
@@ -388,6 +389,82 @@ class PersonalInfo:
         self.window.destroy()
 
 
+# 聊天室
+class ChatClient:
+    def __init__(self, master, account, chat_info):
+        self.chat_info = chat_info
+        self.account = account
+        self.window = Toplevel(master)
+        self.window.title('Complete Personal Information')
+        self.window.title('%s' % (self.chat_info[4]))
+        self.width = 600
+        self.height = 600
+        self.control_layout()
+        self.window_postion()
+
+    def control_layout(self):
+        self.text_msglist = Text(self.window, width=80, height=23, bg='white')
+        self.text_msglist.place(x=20, y=20)
+        self.text_msglist.tag_config("green", foreground='green')
+        self.text_msg = Text(self.window, width=80, height=10, bg='white')
+        self.text_msg.place(x=20, y=350)
+        Button(self.window, text="关闭", command=self.user_quit, font=("黑体", 15)).place(x=200, y=520)
+        self.send_msg = Button(self.window, text="发送", command=self.send_chatmsg, font=("黑体", 15)).place(x=350, y=520)
+
+    def window_postion(self):
+        alignstr = '%dx%d+%d+%d' % (
+            self.width, self.height, (self.window.winfo_screenwidth() - self.width) / 2,
+            (self.window.winfo_screenheight() - self.height) / 2)
+        self.window.geometry(alignstr)
+        self.window.resizable(width=False, height=False)
+
+    def user_quit(self):
+        self.window.destroy()
+
+    # 发送消息，判断是否内容为空，把输入框的内容打印在聊天窗口上，并清空输入框，发送给服务发送者，接收者，时间，内容。
+    def send_chatmsg(self):
+        self.get_record()
+        if self.text_msg.get("0.0", END) == "\n":
+            tkinter.messagebox.showinfo(title='Error', message='不能发送空内容')
+        else:
+            c_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) + '\n'
+            data = {"request_type": "p_send_msg", "data":
+                {"From": self.account, "To": self.chat_info[4], "send_time": c_time,
+                 "send_content": self.text_msg.get("0.0", END)}}
+            hj_sock.send(json.dumps(data).encode())
+            self.deal_text(c_time)
+
+    # 处理会话框，发送后自动清空输入框，将输入框的内容打印到对话框上
+    def deal_text(self, c_time):
+        self.text_msglist.tag_config("green", foreground='green')
+        msg_content = "我: " + c_time
+        self.text_msglist.insert(END, msg_content, 'green')
+        self.text_msglist.insert(END, self.text_msg.get("0.0", END))
+        self.text_msglist.see(END)
+        self.text_msg.delete('0.0', END)
+
+    # 打开聊天记录的时候，收到历史记录,时间,发送者,内容（json格式）
+    def get_record(self):
+        data = {"request_type": "p_get_record"}
+        hj_sock.send(json.dumps(data).encode())
+        while True:
+            data = hj_sock.recv(1024 * 1024).decode()
+            print("Request:", data)
+            if not data:
+                return
+            else:
+                rec_data = json.loads(data)
+                record_from = "%s: %s" % (rec_data["from"], rec_data["send_time"])
+                self.text_msglist.insert(END, record_from, 'green')
+                self.text_msglist.insert(END, rec_data["send_content"], )
+
+    # 实时收到消息
+    def recv_chatmsg(self):
+        # while True:
+        #     pass
+        pass
+
+
 # 企业登录界面
 class EnterpriseLogin:
     def __init__(self, master):
@@ -423,7 +500,7 @@ class EnterpriseLogin:
             tkinter.messagebox.showinfo(title='Hello Job', message='账号不能为空')
         elif not user_pwd:
             tkinter.messagebox.showinfo(title='Hello Job', message='密码不能为空')
-        hj_sock.send(b"e_login verification,%s,%s" % (user_name.encode(), user_pwd.encode()))
+        hj_sock.send(b"e_login_verification,%s,%s" % (user_name.encode(), user_pwd.encode()))
 
     def check_login(self):
         data = hj_sock.recv(128).decode()
@@ -460,4 +537,5 @@ class EnterpriselView:
 # HomePage(root)
 PersonalView(root, "asd")
 # PersonalInfo(root,"asd")
+# ChatClient(root, "asd")
 root.mainloop()

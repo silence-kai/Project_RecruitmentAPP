@@ -46,15 +46,15 @@ class HelloJobServer(Thread):
     def run(self):
         # 循环接受请求
         while True:
-            data = self.connfd.recv(1024*1024).decode()
+            data = self.connfd.recv(1024 * 1024).decode()
             print("Request:", data)
             if not data:
                 return
             client_request = json.loads(data)
-            #登陆确认，账号是否存在，密码石头正确,没问题就允许登陆
+            # 登陆确认，账号是否存在，密码石头正确,没问题就允许登陆
             if client_request["request_type"] == "p_login_verification":
                 pass
-            #确认注册的邮箱地址是否正确，并发送验证码
+            # 确认注册的邮箱地址是否正确，并发送验证码
             elif client_request["request_type"] == "mail_register_code":
                 self.random_code = self.verify_code()
                 print(self.random_code)
@@ -62,7 +62,7 @@ class HelloJobServer(Thread):
                     self.connfd.send(b"mailaddr ok")
                 else:
                     self.connfd.send(b"mailaddr error")
-            #确认验证码是否正确，确认账号是否存在，密码是否正确，都正确则将注册信息存入数据库。
+            # 确认验证码是否正确，确认账号是否存在，密码是否正确，都正确则将注册信息存入数据库。
             elif client_request["request_type"] == "submit_register":
                 print(self.random_code)
                 if self.random_code == client_request["data"]["verify_code"]:
@@ -70,15 +70,24 @@ class HelloJobServer(Thread):
                     self.connfd.send("register_success".encode())
                 else:
                     self.connfd.send("code_error".encode())
-            #完善信息，接收个人信息和简历
+            # 完善信息，接收个人信息和简历
             elif client_request["request_type"] == "p_submit_info":
-               print("把完善的个人信息写入数据库")
-            #接收查询工作的请求，并返回结果。
+                print("把完善的个人信息写入数据库")
+            # 接收查询工作的请求，并返回结果。
             elif client_request["request_type"] == "p_find_job":
                 print(client_request["data"])
+            # 个人用户打开链接时候，首先获取离线消息
+            elif client_request["request_type"] == "p_get_record":
+                print(client_request["data"])
+            # 个人用户发送者消息，发给企业用户，
+            elif client_request["request_type"] == "p_send_msg":
+                # 数据处理，记录到聊天记录当中，判断对方是否在线，保存到历史记录。在线就发送。
+                print(client_request["data"])
+
 
 class HelloJob:
     pass
+
 
 # 网络功能
 def main():
