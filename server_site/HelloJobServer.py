@@ -21,12 +21,12 @@ PORT = 8402
 ADDR = (HOST, PORT)
 # mysql
 
-# db = pymysql.connect(host="localhost",
-#                      port=3306,
-#                      user="root",
-#                      password="kai199418",
-#                      database="school",
-#                      charset="utf8")
+db = pymysql.connect(host="localhost",
+                     port=3306,
+                     user="root",
+                     password="kai199418",
+                     database="recruitment",
+                     charset="utf8")
 
 
 # 文件处理功能
@@ -41,12 +41,6 @@ class HelloJobServer(Thread):
         for i in range(6):
             str_code += str(random.randint(0, 9))
         return str_code
-    #
-    # def login_verification(self):
-    #     if MysqlHandle(db).fun01() == None:
-    #         self.connfd.send(b"user not exits")
-    #     else:
-    #         self.connfd.send(b"user login OK")
 
     # 处理客户端请求
     def run(self):
@@ -54,12 +48,11 @@ class HelloJobServer(Thread):
         while True:
             data = self.connfd.recv(1024*1024).decode()
             print("Request:", data)
-            client_request = json.loads(data)
-            print(client_request)
             if not data:
                 return
+            client_request = json.loads(data)
             #登陆确认，账号是否存在，密码石头正确,没问题就允许登陆
-            elif client_request["request_type"] == "p_login_verification":
+            if client_request["request_type"] == "p_login_verification":
                 pass
             #确认注册的邮箱地址是否正确，并发送验证码
             elif client_request["request_type"] == "mail_register_code":
@@ -80,6 +73,9 @@ class HelloJobServer(Thread):
             #完善信息，接收个人信息和简历
             elif client_request["request_type"] == "p_submit_info":
                print("把完善的个人信息写入数据库")
+            #接收查询工作的请求，并返回结果。
+            elif client_request["request_type"] == "p_find_job":
+                print(client_request["data"])
 
 class HelloJob:
     pass
