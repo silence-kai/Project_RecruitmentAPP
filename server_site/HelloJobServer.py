@@ -46,22 +46,24 @@ class HelloJobServer(Thread):
     def run(self):
         # 循环接受请求
         while True:
+            # send_data =("请输入内容：")
+            # self.connfd.send(json.dumps(send_data).encode())
             data = self.connfd.recv(1024 * 1024).decode()
-            print("Request:", data)
+            # print("Request:", data)
             if not data:
                 return
             client_request = json.loads(data)
             # 登陆确认，账号是否存在，密码石头正确,没问题就允许登陆
             if client_request["request_type"] == "p_login_verification":
-                pass
+                self.connfd.send(b"allow_p_login")
             # 确认注册的邮箱地址是否正确，并发送验证码
             elif client_request["request_type"] == "mail_register_code":
                 self.random_code = self.verify_code()
                 print(self.random_code)
                 if MailCode(client_request["data"]["mailaddr"], self.random_code).mail_task():
-                    self.connfd.send(b"mailaddr ok")
+                    self.connfd.send(b"mailaddr_ok")
                 else:
-                    self.connfd.send(b"mailaddr error")
+                    self.connfd.send(b"mailaddr_error")
             # 确认验证码是否正确，确认账号是否存在，密码是否正确，都正确则将注册信息存入数据库。
             elif client_request["request_type"] == "submit_register":
                 print(self.random_code)
@@ -73,16 +75,24 @@ class HelloJobServer(Thread):
             # 完善信息，接收个人信息和简历
             elif client_request["request_type"] == "p_submit_info":
                 print("把完善的个人信息写入数据库")
+                self.connfd.send(b"submit_info_success")
             # 接收查询工作的请求，并返回结果。
             elif client_request["request_type"] == "p_find_job":
                 print(client_request["data"])
             # 个人用户打开链接时候，首先获取离线消息
             elif client_request["request_type"] == "p_get_record":
-                print(client_request["data"])
+                while True:
+                    data = {"from": "百度", "send_time": "2020.1.8", "send_content": "你好"}
+                    self.connfd.send(json.dumps(data).encode())
+                    sleep(2)
+                # data = {"from":"百度","send_time":"2020.1.8","send_content":"你好"}
+                # for i  in range(3):
+                #     self.connfd.send(json.dumps(data).encode())
+                #     sleep(0.1)
             # 个人用户发送者消息，发给企业用户，
             elif client_request["request_type"] == "p_send_msg":
                 # 数据处理，记录到聊天记录当中，判断对方是否在线，保存到历史记录。在线就发送。
-                print(client_request["data"])
+                print("ok")
 
 
 class HelloJob:

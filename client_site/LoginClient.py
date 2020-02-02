@@ -3,11 +3,11 @@ import tkinter.messagebox
 import tkinter.filedialog
 from tkinter import ttk
 from socket import *
-import sys
 import json
 import time
 import re
-import chardet
+from threading import Thread
+from client_site.chatclient import *
 
 ADDR = ('127.0.0.1', 8402)
 hj_sock = socket()
@@ -17,7 +17,7 @@ root.title('Hello Job')
 
 
 # Home界面，企业和个人登录
-class HomePage:
+class HomePage():
     def __init__(self, master):
         self.window = master
         self.window.title('Hello Job')
@@ -100,9 +100,10 @@ class PersonalLogin:
             tkinter.messagebox.showinfo(title='Hello Job', message='账号不能为空')
         elif not user_pwd:
             tkinter.messagebox.showinfo(title='Hello Job', message='密码不能为空')
-        data = {"request_type": "p_login_verification", "data": {"username": user_name, "password": user_pwd}}
-        hj_sock.send(json.dumps(data).encode())
-        self.check_login()
+        else:
+            data = {"request_type": "p_login_verification", "data": {"username": user_name, "password": user_pwd}}
+            hj_sock.send(json.dumps(data).encode())
+            self.check_login()
 
     # 接收服务器消息，账号是否存在，密码是否正确，无误就弹出个人操作页面。
     def check_login(self):
@@ -222,11 +223,9 @@ class PersonalRegister:
 class PersonalView:
     def __init__(self, master, account):
         self.window = master
-        self.window = Toplevel(master)
         self.window.title('Hello Job')
         self.width = 1200
         self.height = 800
-        self.salary_range = ttk.Combobox(self.window, width=15, font=("黑体", 15))
         self.company_name = StringVar()
         self.postion_name = StringVar()
         self.window_postion()
@@ -241,6 +240,7 @@ class PersonalView:
         Label(self.window, text='温馨提示：双击表中的HR，可以直接与HR沟通哦！', font=("黑体", 15)).place(x=100, y=450)
         Entry(self.window, textvariable=self.company_name, width=15, font=("黑体", 15)).place(x=100, y=180)
         Entry(self.window, textvariable=self.postion_name, width=15, font=("黑体", 15)).place(x=300, y=180)
+        self.salary_range = ttk.Combobox(self.window, width=15, font=("黑体", 15))
         self.salary_range.pack()
         self.salary_range.place(x=500, y=180)
         self.salary_range['value'] = ('0 - 5000', '5000 - 10000', '10000 - 20000', '20000以上')
@@ -302,15 +302,19 @@ class PersonalView:
     # 将返回的结果写入列表
     def insert_jobdata(self):
         for i in range(20):
-            li = ["工程师", "百度科技有限公司", "20000", "吃喝玩乐", "迪丽热巴"]
+            li = ["工程师", "百度科技有限公司", "20000", "吃喝玩乐", "迪丽热巴" + str(i)]
             self.data_tree.insert('', 'end', values=li)
 
-    # 双击HR聊天
+    # 双击HR聊天,调取聊天室
     def treeviewClick(self, event):
         for item in self.data_tree.selection():
-            item_text = self.data_tree.item(item, "values")
-            print(item_text)
-            ChatClient(self.window, self.account, item_text)
+            self.item_text = self.data_tree.item(item, "values")
+            print(self.item_text)
+        chatclient = ChatClient(self.window, self.account, self.item_text, hj_sock)
+        chatclient.start()
+        # ChatClientMain(self.window, self.account, self.item_text, hj_sock).create_chat()
+        data = {"request_type": "p_get_record"}
+        hj_sock.send(json.dumps(data).encode())
 
     def user_quit(self):
         self.window.destroy()
@@ -364,6 +368,7 @@ class PersonalInfo:
             {"account": self.account, "name": person_name, "expected_salary": expected_salary,
              "expected_postion": expected_postion, "resume": self.resume_conent}}
         hj_sock.send(json.dumps(data).encode())
+        self.confirm_submit()
 
     # 确认是否提交成功
     def confirm_submit(self):
@@ -389,87 +394,11 @@ class PersonalInfo:
         self.window.destroy()
 
 
-# 聊天室
-class ChatClient:
-    def __init__(self, master, account, chat_info):
-        self.chat_info = chat_info
-        self.account = account
-        self.window = Toplevel(master)
-        self.window.title('Complete Personal Information')
-        self.window.title('%s' % (self.chat_info[4]))
-        self.width = 600
-        self.height = 600
-        self.control_layout()
-        self.window_postion()
-
-    def control_layout(self):
-        self.text_msglist = Text(self.window, width=80, height=23, bg='white')
-        self.text_msglist.place(x=20, y=20)
-        self.text_msglist.tag_config("green", foreground='green')
-        self.text_msg = Text(self.window, width=80, height=10, bg='white')
-        self.text_msg.place(x=20, y=350)
-        Button(self.window, text="关闭", command=self.user_quit, font=("黑体", 15)).place(x=200, y=520)
-        self.send_msg = Button(self.window, text="发送", command=self.send_chatmsg, font=("黑体", 15)).place(x=350, y=520)
-
-    def window_postion(self):
-        alignstr = '%dx%d+%d+%d' % (
-            self.width, self.height, (self.window.winfo_screenwidth() - self.width) / 2,
-            (self.window.winfo_screenheight() - self.height) / 2)
-        self.window.geometry(alignstr)
-        self.window.resizable(width=False, height=False)
-
-    def user_quit(self):
-        self.window.destroy()
-
-    # 发送消息，判断是否内容为空，把输入框的内容打印在聊天窗口上，并清空输入框，发送给服务发送者，接收者，时间，内容。
-    def send_chatmsg(self):
-        self.get_record()
-        if self.text_msg.get("0.0", END) == "\n":
-            tkinter.messagebox.showinfo(title='Error', message='不能发送空内容')
-        else:
-            c_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) + '\n'
-            data = {"request_type": "p_send_msg", "data":
-                {"From": self.account, "To": self.chat_info[4], "send_time": c_time,
-                 "send_content": self.text_msg.get("0.0", END)}}
-            hj_sock.send(json.dumps(data).encode())
-            self.deal_text(c_time)
-
-    # 处理会话框，发送后自动清空输入框，将输入框的内容打印到对话框上
-    def deal_text(self, c_time):
-        self.text_msglist.tag_config("green", foreground='green')
-        msg_content = "我: " + c_time
-        self.text_msglist.insert(END, msg_content, 'green')
-        self.text_msglist.insert(END, self.text_msg.get("0.0", END))
-        self.text_msglist.see(END)
-        self.text_msg.delete('0.0', END)
-
-    # 打开聊天记录的时候，收到历史记录,时间,发送者,内容（json格式）
-    def get_record(self):
-        data = {"request_type": "p_get_record"}
-        hj_sock.send(json.dumps(data).encode())
-        while True:
-            data = hj_sock.recv(1024 * 1024).decode()
-            print("Request:", data)
-            if not data:
-                return
-            else:
-                rec_data = json.loads(data)
-                record_from = "%s: %s" % (rec_data["from"], rec_data["send_time"])
-                self.text_msglist.insert(END, record_from, 'green')
-                self.text_msglist.insert(END, rec_data["send_content"], )
-
-    # 实时收到消息
-    def recv_chatmsg(self):
-        # while True:
-        #     pass
-        pass
-
-
-# 企业登录界面
+# 企业登陆界面
 class EnterpriseLogin:
     def __init__(self, master):
         self.window = master
-        self.window.title('Hello Job')
+        self.window.title('企业登陆')
         self.width = 800
         self.height = 600
         self.var_usr_name = StringVar()
@@ -500,10 +429,13 @@ class EnterpriseLogin:
             tkinter.messagebox.showinfo(title='Hello Job', message='账号不能为空')
         elif not user_pwd:
             tkinter.messagebox.showinfo(title='Hello Job', message='密码不能为空')
-        hj_sock.send(b"e_login_verification,%s,%s" % (user_name.encode(), user_pwd.encode()))
+        else:
+            data = {"request_type": "e_login_verification", "data": {"username": user_name, "password": user_pwd}}
+            hj_sock.send(json.dumps(data).encode())
+            # self.check_login()
 
     def check_login(self):
-        data = hj_sock.recv(128).decode()
+        data = hj_sock.recv(1024 * 1024).decode()
         if data == "user not exist":
             tkinter.messagebox.showinfo(title='Hello Job', message='账号不存在')
         elif data == "password error":
@@ -534,8 +466,11 @@ class EnterpriselView:
         self.var_usr_pwd = StringVar()
 
 
-# HomePage(root)
-PersonalView(root, "asd")
+# 收消息
+
+
+HomePage(root)
+# PersonalView(root, "asd")
 # PersonalInfo(root,"asd")
-# ChatClient(root, "asd")
+# ChatClient(root,"asd","asd")
 root.mainloop()
