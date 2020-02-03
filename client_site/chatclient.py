@@ -4,16 +4,19 @@ import tkinter.filedialog
 import json
 import time
 from threading import Thread
+from socket import *
+import os
 
 
 # 收消息
 class Receive():
-    def __init__(self, client_sock, text_msglist):
-        # data = {"request_type": "p_get_record"}
+    def __init__(self, text_msglist, chat_sock,msg_from,msg_to):
+        data = {"request_type": "p_get_record","data":
+                {"From": msg_from, "To": msg_to}}
+        chat_sock.send(json.dumps(data).encode())
         while True:
             try:
-                # client_sock.send(json.dumps(data).encode())
-                data = client_sock.recv(1024 * 1024).decode()
+                data = chat_sock.recv(1024 * 1024).decode()
                 rec_data = json.loads(data)
                 record_from = "%s %s\n" % (rec_data["from"], rec_data["send_time"])
                 text_msglist.tag_config("green", foreground='green')
@@ -25,20 +28,23 @@ class Receive():
 
 # 客户端聊天室
 class ChatClient(Thread):
+    ADDR = ('127.0.0.1', 8401)
+    chat_sock = socket()
+    chat_sock.connect(ADDR)
 
-    def __init__(self, master, account, chat_info, client_sock):
+
+    def __init__(self, master, account, chat_info):
         super().__init__()
         self.chat_info = chat_info
         self.account = account
-        # self.window = master
-        self.window = Toplevel(master)
+        self.window = master
+
         # self.window.title('%s' % (self.chat_info[4]))
         self.width = 600
         self.height = 600
         self.control_layout()
         self.window_postion()
-        self.client_sock = client_sock
-        time.sleep(2)
+        time.sleep(1)
         # self.recv_chatmsg()
 
     def control_layout(self):
@@ -64,9 +70,9 @@ class ChatClient(Thread):
         else:
             c_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) + '\n'
             data = {"request_type": "p_send_msg", "data":
-                {"From": self.account, "To": "self.chat_info[4]", "send_time": c_time,
+                {"From": self.account, "To": self.chat_info[4], "send_time": c_time,
                  "send_content": self.text_msg.get("0.0", END)}}
-            self.client_sock.send(json.dumps(data).encode())
+            self.chat_sock.send(json.dumps(data).encode())
             print(data)
             self.deal_text(c_time)
 
@@ -80,8 +86,32 @@ class ChatClient(Thread):
         self.text_msg.delete('0.0', END)
 
     def run(self):
-        Receive(self.client_sock, self.text_msglist)
+        Receive(self.text_msglist, self.chat_sock,self.account,self.chat_info[4])
 
     def user_quit(self):
         self.window.destroy()
+        chatclient.join()
+        self.chat_sock.close()
+
+
+
+class ChatClientMain():
+
+    def __init__(self,  account, chat_info):
+        super().__init__()
+        self.chat_info = chat_info
+        self.account = account
+        # self.window = master
+        # self.window.title('%s' % (self.chat_info[4]))
+        time.sleep(1)
+
+    def create_chat(self):
+        root = Tk()
+        global chatclient
+        chatclient = ChatClient(root, self.account, self.chat_info)
+        chatclient.start()
+        root.mainloop()
+
+
+
 

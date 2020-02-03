@@ -79,20 +79,7 @@ class HelloJobServer(Thread):
             # 接收查询工作的请求，并返回结果。
             elif client_request["request_type"] == "p_find_job":
                 print(client_request["data"])
-            # 个人用户打开链接时候，首先获取离线消息
-            elif client_request["request_type"] == "p_get_record":
-                while True:
-                    data = {"from": "百度", "send_time": "2020.1.8", "send_content": "你好"}
-                    self.connfd.send(json.dumps(data).encode())
-                    sleep(2)
-                # data = {"from":"百度","send_time":"2020.1.8","send_content":"你好"}
-                # for i  in range(3):
-                #     self.connfd.send(json.dumps(data).encode())
-                #     sleep(0.1)
-            # 个人用户发送者消息，发给企业用户，
-            elif client_request["request_type"] == "p_send_msg":
-                # 数据处理，记录到聊天记录当中，判断对方是否在线，保存到历史记录。在线就发送。
-                print("ok")
+
 
 
 class HelloJob:

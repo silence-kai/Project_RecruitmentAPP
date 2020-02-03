@@ -7,7 +7,6 @@ import json
 import time
 import re
 from threading import Thread
-from client_site.chatclient import *
 
 ADDR = ('127.0.0.1', 8402)
 hj_sock = socket()
@@ -117,7 +116,8 @@ class PersonalLogin:
             self.window.destroy()
             global pview_tk
             pview_tk = Tk()
-            PersonalView(pview_tk, login_account)
+            client = PersonalView(pview_tk, login_account)
+            client.start()
             pview_tk.mainloop()
 
     # 弹出注册窗口
@@ -220,8 +220,13 @@ class PersonalRegister:
 
 
 # 个人操作界面
-class PersonalView:
+class PersonalView(Thread):
+    ADDR = ('127.0.0.1', 8401)
+    chat_sock = socket()
+    chat_sock.connect(ADDR)
+
     def __init__(self, master, account):
+        super().__init__()
         self.window = master
         self.window.title('Hello Job')
         self.width = 1200
@@ -231,24 +236,27 @@ class PersonalView:
         self.window_postion()
         self.control_layout()
         self.account = account
+        self.chat_info = ""
+        self.choose_info = ""
 
     def control_layout(self):
         Label(self.window, text='找工作，就来Hello Job!!!', font=("黑体", 25)).place(x=50, y=50)
-        Label(self.window, text='公司名称:', font=("黑体", 15)).place(x=100, y=150)
-        Label(self.window, text='职位名称:', font=("黑体", 15)).place(x=300, y=150)
-        Label(self.window, text='薪资范围:', font=("黑体", 15)).place(x=500, y=150)
+        Label(self.window, text='公司名称:', font=("黑体", 15)).place(x=50, y=150)
+        Label(self.window, text='职位名称:', font=("黑体", 15)).place(x=220, y=150)
+        Label(self.window, text='薪资范围:', font=("黑体", 15)).place(x=390, y=150)
         Label(self.window, text='温馨提示：双击表中的HR，可以直接与HR沟通哦！', font=("黑体", 15)).place(x=100, y=450)
-        Entry(self.window, textvariable=self.company_name, width=15, font=("黑体", 15)).place(x=100, y=180)
-        Entry(self.window, textvariable=self.postion_name, width=15, font=("黑体", 15)).place(x=300, y=180)
+        self.tip_chat = Label(self.window, text='', font=("黑体", 15)).place(x=700, y=120)
+        Entry(self.window, textvariable=self.company_name, width=15, font=("黑体", 15)).place(x=50, y=180)
+        Entry(self.window, textvariable=self.postion_name, width=15, font=("黑体", 15)).place(x=220, y=180)
         self.salary_range = ttk.Combobox(self.window, width=15, font=("黑体", 15))
         self.salary_range.pack()
-        self.salary_range.place(x=500, y=180)
+        self.salary_range.place(x=390, y=180)
         self.salary_range['value'] = ('0 - 5000', '5000 - 10000', '10000 - 20000', '20000以上')
         Button(self.window, text="完善个人信息", command=self.complete_info, font=("黑体", 15)).place(x=900, y=50)
-        Button(self.window, text="查询", command=self.find_job, font=("黑体", 15)).place(x=800, y=160)
+        Button(self.window, text="查询", command=self.find_job, font=("黑体", 15)).place(x=600, y=160)
         Button(self.window, text="退出", command=self.user_quit, font=("黑体", 15)).place(x=1050, y=50)
         self.frame = Frame(self.window)
-        self.frame.place(x=100, y=240, width=750, height=200)
+        self.frame.place(x=50, y=240, width=650, height=200)
         self.scrollbar = Scrollbar(self.frame)
         self.scrollbar.pack(side=RIGHT, fill=Y)
         self.title = ['1', '2', '3', '4', '5', ]
@@ -256,10 +264,10 @@ class PersonalView:
                                       yscrollcommand=self.scrollbar.set,
                                       show='headings')
         self.data_tree.column('1', width=100)
-        self.data_tree.column('2', width=200)
+        self.data_tree.column('2', width=100)
         self.data_tree.column('3', width=100)
-        self.data_tree.column('4', width=200)
-        self.data_tree.column('5', width=100)
+        self.data_tree.column('4', width=100)
+        self.data_tree.column('5', width=200)
         self.data_tree.heading('1', text='职位')
         self.data_tree.heading('2', text='公司')
         self.data_tree.heading('3', text='薪水')
@@ -268,6 +276,12 @@ class PersonalView:
         self.scrollbar.config(command=self.data_tree.yview)
         self.data_tree.pack(side=LEFT, fill=Y)
         self.data_tree.bind('<Double-1>', self.treeviewClick)
+        self.text_msglist = Text(self.window, width=65, height=23, bg='white')
+        self.text_msglist.place(x=700, y=150)
+        self.text_msglist.tag_config("green", foreground='green')
+        self.text_msg = Text(self.window, width=65, height=10, bg='white')
+        self.text_msg.place(x=700, y=460)
+        self.send_msg = Button(self.window, text="发送", command=self.send_chatmsg, font=("黑体", 15)).place(x=700, y=600)
 
     def window_postion(self):
         alignstr = '%dx%d+%d+%d' % (
@@ -305,20 +319,64 @@ class PersonalView:
             li = ["工程师", "百度科技有限公司", "20000", "吃喝玩乐", "迪丽热巴" + str(i)]
             self.data_tree.insert('', 'end', values=li)
 
-    # 双击HR聊天,调取聊天室
+    # 双击HR聊天,调取聊天室,如果切换了聊天对象，则清空收消息框的内容。提示与谁聊天中
     def treeviewClick(self, event):
         for item in self.data_tree.selection():
-            self.item_text = self.data_tree.item(item, "values")
-            print(self.item_text)
-        chatclient = ChatClient(self.window, self.account, self.item_text, hj_sock)
-        chatclient.start()
-        # ChatClientMain(self.window, self.account, self.item_text, hj_sock).create_chat()
-        data = {"request_type": "p_get_record"}
-        hj_sock.send(json.dumps(data).encode())
+            self.choose_info = self.data_tree.item(item, "values")
+        print(self.choose_info)
+        if self.chat_info != self.choose_info:
+            data = {"request_type": "p_get_record", "data":
+                {"From": self.account, "To": self.choose_info[4]}}
+            tip = "与%s沟通中"%self.choose_info[4]
+            self.tip_chat = Label(self.window, text=tip, font=("黑体", 15)).place(x=700, y=120)
+            self.chat_sock.send(json.dumps(data).encode())
+            self.text_msglist.delete('0.0', END)
+            self.chat_info = self.choose_info
+
+    # 发送聊天信息，不能发送空内容，发送From,To,时间,内容到服务器
+    def send_chatmsg(self):
+        if self.text_msg.get("0.0", END) == "\n":
+            tkinter.messagebox.showinfo(title='Error', message='不能发送空内容')
+        else:
+            c_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) + '\n'
+            data = {"request_type": "p_send_msg", "data":
+                {"From": self.account, "To": self.chat_info[4], "send_time": c_time,
+                 "send_content": self.text_msg.get("0.0", END)}}
+            # self.chat_sock.send(json.dumps(data).encode())
+            # print(data)
+            self.deal_send(c_time)
+
+    # 处理发送聊天框，发送完内容，发送框内清空,把自己发的消息打印到收消息框
+    def deal_send(self, c_time):
+        self.text_msglist.tag_config("green", foreground='green')
+        msg_content = "我 " + c_time
+        self.text_msglist.insert(END, msg_content, 'green')
+        self.text_msglist.insert(END, self.text_msg.get("0.0", END))
+        self.text_msglist.see(END)
+        self.text_msg.delete('0.0', END)
+
+    def run(self):
+        Receive(self.text_msglist, self.chat_sock)
 
     def user_quit(self):
         self.window.destroy()
         hj_sock.close()
+        self.chat_sock.close()
+
+
+# 收取聊天信息
+class Receive():
+    def __init__(self, text_msglist, chat_sock):
+        while True:
+            try:
+                data = chat_sock.recv(1024 * 1024).decode()
+                rec_data = json.loads(data)
+                record_from = "%s %s\n" % (rec_data["from"], rec_data["send_time"])
+                text_msglist.tag_config("green", foreground='green')
+                text_msglist.insert(END, record_from, 'green')
+                text_msglist.insert(END, "%s \n" % rec_data["send_content"])
+            except:
+                break
 
 
 # 个人信息提交界面
@@ -465,8 +523,6 @@ class EnterpriselView:
         self.var_usr_name = StringVar()
         self.var_usr_pwd = StringVar()
 
-
-# 收消息
 
 
 HomePage(root)
