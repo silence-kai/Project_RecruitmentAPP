@@ -25,7 +25,7 @@ DROP TABLE IF EXISTS `applicant`;
 CREATE TABLE `applicant` (
   `id` int NOT NULL AUTO_INCREMENT,
   `name` varchar(30) DEFAULT NULL,
-  `mail_addr` varchar(30) DEFAULT NULL,
+  `account` varchar(30) DEFAULT NULL,
   `wanted_position` varchar(30) DEFAULT NULL,
   `wanted_salary` decimal(8,2) DEFAULT NULL,
   `password` varchar(20) DEFAULT NULL,
@@ -136,12 +136,11 @@ CREATE TABLE `hr` (
   `name` varchar(30) DEFAULT NULL,
   `enterprise_id` int DEFAULT NULL,
   `hr_password` varchar(20) DEFAULT NULL,
-  `hr_account` varchar(20) DEFAULT NULL,
-  `mail_addr` varchar(128) DEFAULT NULL,
+  `hr_account` varchar(30) DEFAULT NULL,
   `login_time` datetime DEFAULT NULL,
   `logout_time` datetime DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -150,7 +149,7 @@ CREATE TABLE `hr` (
 
 LOCK TABLES `hr` WRITE;
 /*!40000 ALTER TABLE `hr` DISABLE KEYS */;
-INSERT INTO `hr` VALUES (1,'张三',1,'123456','alizhangsan','123@qq.com','2020-01-18 17:04:42','2020-01-18 17:04:42'),(2,'李四',2,'234567','tengxunlisi','456@qq.com','2020-01-18 17:04:42','2020-01-18 17:04:42'),(3,'王五',3,'345678','baiduwangwu','789@qq.com','2020-01-18 17:04:42','2020-01-18 17:04:42'),(4,'孙六',4,'456789','didisunliu','asv@qq.com','2020-01-18 17:04:42','2020-01-18 17:04:42'),(5,'赵七',5,'567891','huweizhaoqi','rfv@qq.com','2020-01-18 17:04:42','2020-01-18 17:04:42'),(6,'吴八',6,'678911','xiaomiwuba','fds@qq.com','2020-01-18 17:04:42','2020-01-18 17:04:42');
+INSERT INTO `hr` VALUES (1,'张三',1,'123456','123@qq.com','2020-01-18 17:04:42','2020-01-18 17:04:42'),(2,'李四',2,'234567','456@qq.com','2020-01-18 17:04:42','2020-01-18 17:04:42'),(3,'王五',3,'345678','789@qq.com','2020-01-18 17:04:42','2020-01-18 17:04:42'),(4,'孙六',4,'456789','asv@qq.com','2020-01-18 17:04:42','2020-01-18 17:04:42'),(5,'赵七',5,'567891','rfv@qq.com','2020-01-18 17:04:42','2020-01-18 17:04:42'),(6,'吴八',6,'678911','fds@qq.com','2020-01-18 17:04:42','2020-01-18 17:04:42'),(7,'Lily',1,'123456','478@qq.com','2020-01-18 17:04:42','2020-01-18 17:04:42'),(8,'Martin',1,'123456','asdqew@qq.com','2020-01-18 17:04:42','2020-01-18 17:04:42'),(9,'Gaga',2,'123456','123543@qq.com','2020-01-18 17:04:42','2020-01-18 17:04:42'),(10,'Tom',2,'123456','545rfdrg@qq.com','2020-01-18 17:04:42','2020-01-18 17:04:42'),(11,'Lucy',3,'123456','zxcrt345@qq.com','2020-01-18 17:04:42','2020-01-18 17:04:42'),(12,'Julia',3,'123456','12315df8@qq.com','2020-01-18 17:04:42','2020-01-18 17:04:42'),(13,'Nancy',4,'123456','6687fg@qq.com','2020-01-18 17:04:42','2020-01-18 17:04:42'),(14,'Daisy',5,'123456','zxchgty1@qq.com','2020-01-18 17:04:42','2020-01-18 17:04:42'),(15,'Bob',6,'123456','qweasdzz@qq.com','2020-01-18 17:04:42','2020-01-18 17:04:42');
 /*!40000 ALTER TABLE `hr` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -169,7 +168,7 @@ CREATE TABLE `position` (
   `hr_id` int DEFAULT NULL,
   `enterprise_id` int DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -178,7 +177,7 @@ CREATE TABLE `position` (
 
 LOCK TABLES `position` WRITE;
 /*!40000 ALTER TABLE `position` DISABLE KEYS */;
-INSERT INTO `position` VALUES (1,'程序员',12000.00,'好好工作,天天向上',1,1),(2,'架构师',20000.00,'好好工作,天天向上',1,1),(3,'秘书',8000.00,'好好工作,天天向上',1,1),(4,'测试员',6000.00,'好好工作,天天向上',1,1);
+INSERT INTO `position` VALUES (1,'程序员',12000.00,'好好工作,天天向上',1,1),(2,'架构师',20000.00,'好好工作,天天向上',11,3),(3,'秘书',8000.00,'好好工作,天天向上',11,3),(4,'测试员',6000.00,'好好工作,天天向上',1,1),(5,'开发工程师',9000.00,'无忧无虑',7,1),(6,'开发工程师',13000.00,'吃喝玩乐',10,2),(7,'开发工程师',13000.00,'吃喝玩乐',10,2),(8,'测试工程师',15000.00,'你来我往',11,3),(9,'秘书',10000.00,'玩命干',12,3),(10,'架构师',11000.00,'拼命加班',13,4),(11,'开发工程师',14000.00,'你死我活',15,6),(12,'测试工程师',8000.00,'打王者荣耀',2,2),(13,'开发工程师',9000.00,'看月亮',3,3),(14,'开发工程师',20000.00,'看星星',4,4),(15,'秘书',6000.00,'喝咖啡',5,5),(16,'测试工程师',7000.00,'打豆豆',1,1),(17,'开发工程师',10000.00,'砸键盘',2,2),(18,'开发工程师',12000.00,'吃鼠标',3,3);
 /*!40000 ALTER TABLE `position` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -191,4 +190,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2020-02-03 13:24:19
+-- Dump completed on 2020-02-06 22:23:24

@@ -50,14 +50,14 @@ class PositionModel:
         return self.cur.fetchone()
 
 
-if __name__ == '__main__':
-    db = pymysql.connect(host="localhost",
-                         port=3306,
-                         user="root",
-                         password="kai199418",
-                         database="recruitment",
-                         charset="utf8")
-    model = PositionModel(db)
-    print(model.get_position("111@163.com", None, None, None))
+# if __name__ == '__main__':
+#     db = pymysql.connect(host="localhost",
+#                          port=3306,
+#                          user="root",
+#                          password="kai199418",
+#                          database="recruitment",
+#                          charset="utf8")
+#     model = PositionModel(db)
+#     print(model.get_position("111@163.com", "测试", None, None))
     # model.add_position("开发工程师", '24000', "熟练使用python语言，了解开发流程", 1, 1)
     # print(model.get_hr("alizhangsan"))

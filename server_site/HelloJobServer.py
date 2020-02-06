@@ -47,8 +47,6 @@ class HelloJobServer(Thread):
     def run(self):
         # 循环接受请求
         while True:
-            # send_data =("请输入内容：")
-            # self.connfd.send(json.dumps(send_data).encode())
             data = self.connfd.recv(1024 * 1024).decode()
             # print("Request:", data)
             if not data:
@@ -86,8 +84,8 @@ class HelloJobServer(Thread):
                 print(client_request["data"])
                 handle.search_position(self.connfd,db,client_request["data"])
             elif client_request["request_type"] == "add_position":
-                print("把完善的个人信息写入数据库")
-                self.connfd.send(b"add_position_success")
+                print("添加的职位")
+                handle.add_position(self.connfd, db, client_request["data"])
 
 
 

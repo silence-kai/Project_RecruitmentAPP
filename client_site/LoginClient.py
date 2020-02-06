@@ -253,7 +253,7 @@ class PersonalView(Thread):
         self.salary_range.place(x=390, y=180)
         self.salary_range['value'] = ('0 - 5000', '5000 - 10000', '10000 - 20000', '20000以上')
         Button(self.window, text="完善个人信息", command=self.complete_info, font=("黑体", 15)).place(x=900, y=50)
-        Button(self.window, text="查询", command=self.find_job, font=("黑体", 15)).place(x=600, y=160)
+        Button(self.window, text="查询", command=self.search_job, font=("黑体", 15)).place(x=600, y=160)
         Button(self.window, text="退出", command=self.user_quit, font=("黑体", 15)).place(x=1050, y=50)
         self.frame = Frame(self.window)
         self.frame.place(x=50, y=240, width=650, height=200)
@@ -264,10 +264,10 @@ class PersonalView(Thread):
                                       yscrollcommand=self.scrollbar.set,
                                       show='headings')
         self.data_tree.column('1', width=100)
-        self.data_tree.column('2', width=100)
+        self.data_tree.column('2', width=150)
         self.data_tree.column('3', width=100)
-        self.data_tree.column('4', width=100)
-        self.data_tree.column('5', width=200)
+        self.data_tree.column('4', width=150)
+        self.data_tree.column('5', width=100)
         self.data_tree.heading('1', text='职位')
         self.data_tree.heading('2', text='公司')
         self.data_tree.heading('3', text='薪水')
@@ -295,17 +295,29 @@ class PersonalView(Thread):
         PersonalInfo(self.window, self.account)
 
     # 查询工作，按条件，公司名，薪资，岗位
-    def find_job(self):
+    def search_job(self):
         company_name = self.company_name.get()
         postion_name = self.postion_name.get()
         salary_range = self.salary_range.get()
-        data = {"request_type": "search_position", "data":
-            {"account": self.account,  "position": postion_name,"salary": salary_range,"enterprise": company_name
-             }}
-        hj_sock.send(json.dumps(data).encode())
-        # rec_data = hj_sock.recv(1024 * 1024).decode()
-        self.clear_jobdata()
-        self.insert_jobdata()
+        if salary_range == "20000以上":
+            data = {"request_type": "search_position", "data":
+                {"account": self.account,  "position": postion_name,"salary": "20000-999999","enterprise": company_name
+                 }}
+            print(data)
+            hj_sock.send(json.dumps(data).encode())
+        else:
+            data = {"request_type": "search_position", "data":
+                {"account": self.account,  "position": postion_name,"salary": salary_range,"enterprise": company_name
+                 }}
+            print(data)
+            hj_sock.send(json.dumps(data).encode())
+        rec_data = hj_sock.recv(1024 * 1024).decode()
+        print(rec_data)
+        if rec_data == "get_position_failed":
+            tkinter.messagebox.showinfo(title='Hello Job', message='没有找到符合的工作')
+        elif rec_data == "get_position_success":
+            self.clear_jobdata()
+            self.insert_jobdata()
 
     # 在查询工作前先清空之前查询的结果
     def clear_jobdata(self):
@@ -316,10 +328,11 @@ class PersonalView(Thread):
     # 将返回的结果写入列表
     def insert_jobdata(self):
         rec_data = hj_sock.recv(1024 * 1024).decode()
-        print(rec_data)
-        for i in range(20):
-            li = ["工程师", "百度科技有限公司", "20000", "吃喝玩乐", "迪丽热巴" + str(i)]
-            self.data_tree.insert('', 'end', values=li)
+        result = json.loads(rec_data)
+        for i in result["data"]:
+            list = [i['position'],i['enterprise'],i['salary'],i['duties'],i['hr']]
+            # li = ["工程师", "百度科技有限公司", "20000", "吃喝玩乐", "迪丽热巴" + str(i)]
+            self.data_tree.insert('', 'end', values=list)
 
     # 双击HR聊天,调取聊天室,如果切换了聊天对象，则清空收消息框的内容。提示与谁聊天中
     def treeviewClick(self, event):
