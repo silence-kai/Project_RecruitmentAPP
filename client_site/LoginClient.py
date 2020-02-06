@@ -299,9 +299,9 @@ class PersonalView(Thread):
         company_name = self.company_name.get()
         postion_name = self.postion_name.get()
         salary_range = self.salary_range.get()
-        data = {"request_type": "p_find_job", "data":
-            {"company_name": company_name, "postion_name": postion_name,
-             "salary_range": salary_range}}
+        data = {"request_type": "search_position", "data":
+            {"account": self.account,  "position": postion_name,"salary": salary_range,"enterprise": company_name
+             }}
         hj_sock.send(json.dumps(data).encode())
         # rec_data = hj_sock.recv(1024 * 1024).decode()
         self.clear_jobdata()
@@ -315,6 +315,8 @@ class PersonalView(Thread):
 
     # 将返回的结果写入列表
     def insert_jobdata(self):
+        rec_data = hj_sock.recv(1024 * 1024).decode()
+        print(rec_data)
         for i in range(20):
             li = ["工程师", "百度科技有限公司", "20000", "吃喝玩乐", "迪丽热巴" + str(i)]
             self.data_tree.insert('', 'end', values=li)
@@ -326,8 +328,8 @@ class PersonalView(Thread):
         print(self.choose_info)
         if self.chat_info != self.choose_info:
             data = {"request_type": "p_get_record", "data":
-                {"From": self.account, "To": self.choose_info[4]}}
-            tip = "与%s沟通中"%self.choose_info[4]
+                {"From": self.choose_info[4], "To": self.account}}
+            tip = "与%s沟通中..." % self.choose_info[4]
             self.tip_chat = Label(self.window, text=tip, font=("黑体", 15)).place(x=700, y=120)
             self.chat_sock.send(json.dumps(data).encode())
             self.text_msglist.delete('0.0', END)
@@ -362,21 +364,6 @@ class PersonalView(Thread):
         self.window.destroy()
         hj_sock.close()
         self.chat_sock.close()
-
-
-# 收取聊天信息
-class Receive():
-    def __init__(self, text_msglist, chat_sock):
-        while True:
-            try:
-                data = chat_sock.recv(1024 * 1024).decode()
-                rec_data = json.loads(data)
-                record_from = "%s %s\n" % (rec_data["from"], rec_data["send_time"])
-                text_msglist.tag_config("green", foreground='green')
-                text_msglist.insert(END, record_from, 'green')
-                text_msglist.insert(END, "%s \n" % rec_data["send_content"])
-            except:
-                break
 
 
 # 个人信息提交界面
@@ -423,8 +410,8 @@ class PersonalInfo:
         expected_postion = self.expected_postion.get()
         person_name = self.person_name.get()
         data = {"request_type": "p_submit_info", "data":
-            {"account": self.account, "name": person_name, "expected_salary": expected_salary,
-             "expected_postion": expected_postion, "resume": self.resume_conent}}
+            {"account": self.account, "name": person_name, "salary": expected_salary,
+             "postion": expected_postion, "resume": self.resume_conent}}
         hj_sock.send(json.dumps(data).encode())
         self.confirm_submit()
 
@@ -456,7 +443,7 @@ class PersonalInfo:
 class EnterpriseLogin:
     def __init__(self, master):
         self.window = master
-        self.window.title('企业登陆')
+        self.window.title('Hello Job')
         self.width = 800
         self.height = 600
         self.var_usr_name = StringVar()
@@ -470,7 +457,6 @@ class EnterpriseLogin:
         Entry(self.window, textvariable=self.var_usr_name, font=("黑体", 15)).place(x=330, y=250)
         Entry(self.window, textvariable=self.var_usr_pwd, show='*', font=("黑体", 15)).place(x=330, y=300)
         Button(self.window, text='登录', command=self.user_login, font=("黑体", 15)).place(x=250, y=350)
-        Button(self.window, text='注册', command=self.user_register, font=("黑体", 15)).place(x=350, y=350)
         Button(self.window, text="退出", command=self.user_quit, font=("黑体", 15)).place(x=450, y=350)
 
     def window_postion(self):
@@ -480,6 +466,7 @@ class EnterpriseLogin:
         self.window.geometry(alignstr)
         self.window.resizable(width=False, height=False)
 
+    # 点击登录，检测账号密码是否为空，发送个人登录请求，数据：账号和密码
     def user_login(self):
         user_name = self.var_usr_name.get()
         user_pwd = self.var_usr_pwd.get()
@@ -490,23 +477,23 @@ class EnterpriseLogin:
         else:
             data = {"request_type": "e_login_verification", "data": {"username": user_name, "password": user_pwd}}
             hj_sock.send(json.dumps(data).encode())
-            # self.check_login()
+            self.check_login()
 
+    # 接收服务器消息，账号是否存在，密码是否正确，无误就弹出个人操作页面。
     def check_login(self):
-        data = hj_sock.recv(1024 * 1024).decode()
-        if data == "user not exist":
+        data = hj_sock.recv(1024).decode()
+        if data == "user_not_exist":
             tkinter.messagebox.showinfo(title='Hello Job', message='账号不存在')
-        elif data == "password error":
+        elif data == "password_error":
             tkinter.messagebox.showinfo(title='Hello Job', message='密码错误')
-        elif data == "allow e_login":
+        elif data == "allow_e_login":
+            login_account = self.var_usr_name.get()
             self.window.destroy()
             global eview_tk
             eview_tk = Tk()
-            EnterpriselView(eview_tk)
+            client = EnterpriseView(eview_tk, login_account)
+            client.start()
             eview_tk.mainloop()
-
-    def user_register(self):
-        PersonalRegister(self.window)
 
     def user_quit(self):
         self.window.destroy()
@@ -514,15 +501,212 @@ class EnterpriseLogin:
 
 
 # 企业操作界面
-class EnterpriselView:
-    def __init__(self, master):
+class EnterpriseView(Thread):
+    ADDR = ('127.0.0.1', 8401)
+    chat_sock = socket()
+    chat_sock.connect(ADDR)
+
+    def __init__(self, master, account):
+        super().__init__()
         self.window = master
         self.window.title('Hello Job')
-        self.width = 800
-        self.height = 600
-        self.var_usr_name = StringVar()
-        self.var_usr_pwd = StringVar()
+        self.width = 1200
+        self.height = 800
+        self.postion = StringVar()
+        self.window_postion()
+        self.control_layout()
+        self.account = account
+        self.chat_info = ""
+        self.choose_info = ""
 
+    def control_layout(self):
+        Label(self.window, text='找人才，就来Hello Job!!!', font=("黑体", 25)).place(x=50, y=50)
+        Label(self.window, text='期望职位:', font=("黑体", 15)).place(x=150, y=150)
+        Label(self.window, text='薪资范围:', font=("黑体", 15)).place(x=350, y=150)
+        Label(self.window, text='温馨提示：双击表中的求职者，可以直接与求职者沟通哦！', font=("黑体", 15)).place(x=100, y=450)
+        self.tip_chat = Label(self.window, text='', font=("黑体", 15)).place(x=700, y=120)
+        Entry(self.window, textvariable=self.postion, width=15, font=("黑体", 15)).place(x=150, y=180)
+        self.salary_range = ttk.Combobox(self.window, width=15, font=("黑体", 15))
+        self.salary_range.pack()
+        self.salary_range.place(x=350, y=180)
+        self.salary_range['value'] = ('0 - 5000', '5000 - 10000', '10000 - 20000', '20000以上')
+        Button(self.window, text="发布职位", command=self.complete_postion, font=("黑体", 15)).place(x=900, y=50)
+        Button(self.window, text="查询", command=self.find_applicant, font=("黑体", 15)).place(x=600, y=160)
+        Button(self.window, text="退出", command=self.user_quit, font=("黑体", 15)).place(x=1050, y=50)
+        self.frame = Frame(self.window)
+        self.frame.place(x=50, y=240, width=650, height=200)
+        self.scrollbar = Scrollbar(self.frame)
+        self.scrollbar.pack(side=RIGHT, fill=Y)
+        self.title = ['1', '2', '3', '4']
+        self.data_tree = ttk.Treeview(self.frame, columns=self.title,
+                                      yscrollcommand=self.scrollbar.set,
+                                      show='headings')
+        self.data_tree.column('1', width=100)
+        self.data_tree.column('2', width=150)
+        self.data_tree.column('3', width=150)
+        self.data_tree.column('4', width=150)
+        self.data_tree.heading('1', text='姓名')
+        self.data_tree.heading('2', text='邮箱')
+        self.data_tree.heading('3', text='期望职位')
+        self.data_tree.heading('4', text='期望薪资')
+        self.scrollbar.config(command=self.data_tree.yview)
+        self.data_tree.pack(side=LEFT, fill=Y)
+        self.data_tree.bind('<Double-1>', self.treeviewClick)
+        self.text_msglist = Text(self.window, width=65, height=23, bg='white')
+        self.text_msglist.place(x=700, y=150)
+        self.text_msglist.tag_config("green", foreground='green')
+        self.text_msg = Text(self.window, width=65, height=10, bg='white')
+        self.text_msg.place(x=700, y=460)
+        self.send_msg = Button(self.window, text="发送", command=self.send_chatmsg, font=("黑体", 15)).place(x=700, y=600)
+
+    def window_postion(self):
+        alignstr = '%dx%d+%d+%d' % (
+            self.width, self.height, (self.window.winfo_screenwidth() - self.width) / 2,
+            (self.window.winfo_screenheight() - self.height) / 2)
+        self.window.geometry(alignstr)
+        self.window.resizable(width=False, height=False)
+
+    # 填写发布职位的名称，薪资，职责
+    def complete_postion(self):
+        AddPosition(self.window, self.account)
+
+    # 查询求职者，按照薪资和职位
+    def find_applicant(self):
+        postion_name = self.postion.get()
+        salary_range = self.salary_range.get()
+        data = {"request_type": "search_position", "data":
+            {"postion_name": postion_name,
+             "salary_range": salary_range}}
+        hj_sock.send(json.dumps(data).encode())
+        # rec_data = hj_sock.recv(1024 * 1024).decode()
+        self.clear_data()
+        self.insert_result()
+
+    # 在查询工作前先清空之前查询的结果
+    def clear_data(self):
+        x = self.data_tree.get_children()
+        for item in x:
+            self.data_tree.delete(item)
+
+    # 将返回的结果写入列表
+    def insert_result(self):
+        for i in range(20):
+            li = ["张三%s"%i, "123465789@qq.com", "总经理", 20000]
+            self.data_tree.insert('', 'end', values=li)
+
+    # 双击HR聊天,调取聊天室,如果切换了聊天对象，则清空收消息框的内容。提示与谁聊天中
+    def treeviewClick(self, event):
+        for item in self.data_tree.selection():
+            self.choose_info = self.data_tree.item(item, "values")
+        print(self.choose_info)
+        if self.chat_info != self.choose_info:
+            data = {"request_type": "p_get_record", "data":
+                {"From": self.choose_info[0], "To": self.account}}
+            tip = "与%s沟通中..." % self.choose_info[0]
+            self.tip_chat = Label(self.window, text=tip, font=("黑体", 15)).place(x=700, y=120)
+            self.chat_sock.send(json.dumps(data).encode())
+            self.text_msglist.delete('0.0', END)
+            self.chat_info = self.choose_info
+
+    # 发送聊天信息，不能发送空内容，发送From,To,时间,内容到服务器
+    def send_chatmsg(self):
+        if self.text_msg.get("0.0", END) == "\n":
+            tkinter.messagebox.showinfo(title='Error', message='不能发送空内容')
+        else:
+            c_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) + '\n'
+            data = {"request_type": "p_send_msg", "data":
+                {"From": self.account, "To": self.chat_info[1], "send_time": c_time,
+                 "send_content": self.text_msg.get("0.0", END)}}
+            # self.chat_sock.send(json.dumps(data).encode())
+            # print(data)
+            self.deal_send(c_time)
+
+    # 处理发送聊天框，发送完内容，发送框内清空,把自己发的消息打印到收消息框
+    def deal_send(self, c_time):
+        self.text_msglist.tag_config("green", foreground='green')
+        msg_content = "我 " + c_time
+        self.text_msglist.insert(END, msg_content, 'green')
+        self.text_msglist.insert(END, self.text_msg.get("0.0", END))
+        self.text_msglist.see(END)
+        self.text_msg.delete('0.0', END)
+
+    def run(self):
+        Receive(self.text_msglist, self.chat_sock)
+
+    def user_quit(self):
+        self.window.destroy()
+        hj_sock.close()
+        self.chat_sock.close()
+
+
+# 添加职位
+class AddPosition:
+    def __init__(self, master, account):
+        self.account = account
+        self.window = Toplevel(master)
+        self.window.title('Complete Personal Information')
+        self.width = 600
+        self.height = 400
+        self.position = StringVar()
+        self.duties = StringVar()
+        self.salary = StringVar()
+        self.control_layout()
+        self.window_postion()
+
+    def control_layout(self):
+        Label(self.window, text='岗位名称', font=("黑体", 15)).place(x=150, y=80)
+        Label(self.window, text='岗位职责', font=("黑体", 15)).place(x=150, y=120)
+        Label(self.window, text='岗位薪资', font=("黑体", 15)).place(x=150, y=160)
+        Entry(self.window, textvariable=self.position, font=("黑体", 15)).place(x=250, y=80)
+        Entry(self.window, textvariable=self.duties, font=("黑体", 15)).place(x=250, y=120)
+        Entry(self.window, textvariable=self.salary, font=("黑体", 15)).place(x=250, y=160)
+        Button(self.window, text="提交", command=self.submit_position, font=("黑体", 15)).place(x=250, y=280)
+        Button(self.window, text="退出", command=self.user_quit, font=("黑体", 15)).place(x=350, y=280)
+
+    def window_postion(self):
+        alignstr = '%dx%d+%d+%d' % (
+            self.width, self.height, (self.window.winfo_screenwidth() - self.width) / 2,
+            (self.window.winfo_screenheight() - self.height) / 2)
+        self.window.geometry(alignstr)
+        self.window.resizable(width=False, height=False)
+
+    # 确认发布岗位信息
+    def submit_position(self):
+        salary = self.salary.get()
+        duties = self.duties.get()
+        position = self.position.get()
+        data = {"request_type": "add_position", "data":
+            {"account": self.account, "position": position, "duties": duties,
+             "salary": salary}}
+        hj_sock.send(json.dumps(data).encode())
+        self.confirm_add()
+
+    # 确认是否提交成功
+    def confirm_add(self):
+        data = hj_sock.recv(1024).decode()
+        if data == "add_position_success":
+            tkinter.messagebox.showinfo(title='Hello Job', message='发布职位成功')
+            self.window.destroy()
+        if data == "add_position_failed":
+            tkinter.messagebox.showinfo(title='Hello Job', message='发布职位失败')
+
+    def user_quit(self):
+        self.window.destroy()
+
+
+# 收取聊天信息
+class Receive():
+    def __init__(self, text_msglist, chat_sock):
+        while True:
+            try:
+                data = chat_sock.recv(1024 * 1024).decode()
+                rec_data = json.loads(data)
+                record_from = "%s %s\n" % (rec_data["from"], rec_data["send_time"])
+                text_msglist.tag_config("green", foreground='green')
+                text_msglist.insert(END, record_from, 'green')
+                text_msglist.insert(END, "%s \n" % rec_data["send_content"])
+            except:
+                break
 
 
 HomePage(root)

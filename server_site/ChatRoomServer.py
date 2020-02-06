@@ -19,14 +19,10 @@ db = pymysql.connect(host="localhost",
                      charset="utf8")
 
 
-
 class ChatServer(Thread):
     def __init__(self, connfd):
         super().__init__()
         self.connfd = connfd
-
-
-
 
     def run(self):
         while True:
@@ -37,14 +33,14 @@ class ChatServer(Thread):
             if not data:
                 return
             elif client_request["request_type"] == "p_get_record":
-                if client_request["data"]["To"] =="迪丽热巴1":
-                    data = {"from": "百度", "send_time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "send_content": "我是百度HR迪丽热巴1号"}
+                if client_request["data"]["From"] == "迪丽热巴1":
+                    data = {"from": "百度", "send_time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+                            "send_content": "我是百度HR迪丽热巴1号"}
                     self.connfd.send(json.dumps(data).encode())
-                if client_request["data"]["To"] =="迪丽热巴3":
-                    data = {"from": "百度", "send_time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), "send_content": "我是百度HR迪丽热巴2号"}
+                if client_request["data"]["From"] == "迪丽热巴3":
+                    data = {"from": "百度", "send_time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+                            "send_content": "我是百度HR迪丽热巴2号"}
                     self.connfd.send(json.dumps(data).encode())
-
-
             elif client_request["request_type"] == "p_send_msg":
                 if client_request["data"]["To"] == "迪丽热巴1":
                     data = {"from": "百度", "send_time": "2020.1.8", "send_content": "迪丽热巴1"}
@@ -52,16 +48,6 @@ class ChatServer(Thread):
                 if client_request["data"]["To"] == "迪丽热巴3":
                     data = {"from": "百度", "send_time": "2020.1.8", "send_content": "迪丽热巴3"}
                     self.connfd.send(json.dumps(data).encode())
-
-                # data = {"from": "百度", "send_time": "2020.1.8", "send_content": "你好不好"}
-                # for i in range(3):
-                #     self.connfd.send(json.dumps(data).encode())
-                #     sleep(1)
-                # while True:
-                #     data = {"from": "百度", "send_time": "2020.1.8", "send_content": "你好"}
-                #     self.connfd.send(json.dumps(data).encode())
-                #         sleep(1)
-
 
 
 def main():
@@ -71,7 +57,7 @@ def main():
     s.bind(ADDR)
     s.listen(3)
 
-    print('Listen the port 8042...')
+    print('Listen the port 8041...')
     # 循环等待客户端连接
     while True:
         try:

@@ -7,26 +7,27 @@ env: python3.6
 from socket import *
 from threading import Thread
 import sys
-import os
-from time import sleep
 import json
-
 from server_site.mailtask import MailCode
 import random
 import pymysql
+from server_site.config import *
+from server_site import handle
 
-# 全局变量
-HOST = '0.0.0.0'
-PORT = 8402
-ADDR = (HOST, PORT)
-# mysql
+# import test
 
-db = pymysql.connect(host="localhost",
-                     port=3306,
-                     user="root",
-                     password="kai199418",
-                     database="recruitment",
+
+# 全局变量socket从config中调取socket参数
+SOCKET_ADDR = (socket_host, socket_port)
+# mysql 从config中调取连接mysql的参数
+db = pymysql.connect(host=mysql_host,
+                     port=mysql_port,
+                     user=mysql_user,
+                     password=mysql_password,
+                     database=mysql_database,
                      charset="utf8")
+
+
 
 
 # 文件处理功能
@@ -55,7 +56,11 @@ class HelloJobServer(Thread):
             client_request = json.loads(data)
             # 登陆确认，账号是否存在，密码石头正确,没问题就允许登陆
             if client_request["request_type"] == "p_login_verification":
+
                 self.connfd.send(b"allow_p_login")
+            elif client_request["request_type"] == "e_login_verification":
+
+                self.connfd.send(b"allow_e_login")
             # 确认注册的邮箱地址是否正确，并发送验证码
             elif client_request["request_type"] == "mail_register_code":
                 self.random_code = self.verify_code()
@@ -77,13 +82,13 @@ class HelloJobServer(Thread):
                 print("把完善的个人信息写入数据库")
                 self.connfd.send(b"submit_info_success")
             # 接收查询工作的请求，并返回结果。
-            elif client_request["request_type"] == "p_find_job":
+            elif client_request["request_type"] == "search_position":
                 print(client_request["data"])
+                handle.search_position(self.connfd,db,client_request["data"])
+            elif client_request["request_type"] == "add_position":
+                print("把完善的个人信息写入数据库")
+                self.connfd.send(b"add_position_success")
 
-
-
-class HelloJob:
-    pass
 
 
 # 网络功能
@@ -91,7 +96,7 @@ def main():
     # 创建监听套接字
     s = socket()
     s.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-    s.bind(ADDR)
+    s.bind(SOCKET_ADDR)
     s.listen(3)
 
     print('Listen the port 8042...')
