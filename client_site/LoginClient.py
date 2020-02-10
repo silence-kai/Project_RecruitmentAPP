@@ -100,7 +100,7 @@ class PersonalLogin:
         elif not user_pwd:
             tkinter.messagebox.showinfo(title='Hello Job', message='密码不能为空')
         else:
-            data = {"request_type": "p_login_verification", "data": {"username": user_name, "password": user_pwd}}
+            data = {"request_type": "p_login_verification", "data": {"account": user_name, "password": user_pwd}}
             hj_sock.send(json.dumps(data).encode())
             self.check_login()
 
@@ -186,7 +186,7 @@ class PersonalRegister:
         verify_code = self.verify_code.get()
         if self.check_pwd(new_pwd, confirm_pwd):
             data = {"request_type": "submit_register", "data":
-                {"p_account": new_user, "password": new_pwd, "verify_code": verify_code}}
+                {"account": new_user, "password": new_pwd, "verify_code": verify_code}}
             hj_sock.send(json.dumps(data).encode())
             self.check_regist()
 
@@ -207,13 +207,15 @@ class PersonalRegister:
     # 接收服务回复，账号是否已存在，验证码是否有问题，注册成功，退出窗口
     def check_regist(self):
         data = hj_sock.recv(1024).decode()
-        if data == "name_exists":
-            tkinter.messagebox.showinfo(title='Hello Job', message='账号已被注册')
-        if data == "register_success":
+        if data == "regist_success":
             tkinter.messagebox.showinfo(title='Hello Job', message='注册成功')
             self.window.destroy()
-        if data == "code_error":
+        elif data == "account_exists":
+            tkinter.messagebox.showinfo(title='Hello Job', message='账号已被注册')
+        elif data == "code_error":
             tkinter.messagebox.showinfo(title='Hello Job', message='验证码有误')
+        elif data == "unknown_error":
+            tkinter.messagebox.showinfo(title='Hello Job', message='未知错误')
 
     def user_quit(self):
         self.window.destroy()
@@ -700,7 +702,7 @@ class AddPosition:
         if data == "add_position_success":
             tkinter.messagebox.showinfo(title='Hello Job', message='发布职位成功')
             self.window.destroy()
-        if data == "add_position_failed":
+        elif data == "add_position_failed":
             tkinter.messagebox.showinfo(title='Hello Job', message='发布职位失败')
 
     def user_quit(self):

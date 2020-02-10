@@ -20,12 +20,12 @@ from server_site import handle
 # 全局变量socket从config中调取socket参数
 SOCKET_ADDR = (socket_host, socket_port)
 # mysql 从config中调取连接mysql的参数
-db = pymysql.connect(host=mysql_host,
-                     port=mysql_port,
-                     user=mysql_user,
-                     password=mysql_password,
-                     database=mysql_database,
-                     charset="utf8")
+# db = pymysql.connect(host=mysql_host,
+#                      port=mysql_port,
+#                      user=mysql_user,
+#                      password=mysql_password,
+#                      database=mysql_database,
+#                      charset="utf8")
 
 
 
@@ -52,14 +52,15 @@ class HelloJobServer(Thread):
             if not data:
                 return
             client_request = json.loads(data)
-            # 登陆确认，账号是否存在，密码石头正确,没问题就允许登陆
+            # 个人登陆确认，账号是否存在，密码石头正确,没问题就允许登陆（已完成）
             if client_request["request_type"] == "p_login_verification":
-
-                self.connfd.send(b"allow_p_login")
+                print("验证个人用户登陆")
+                handle.verify_login(self.connfd,client_request["data"],"applicant")
+            # 企业登陆确认，账号是否存在，密码石头正确,没问题就允许登陆（已完成）
             elif client_request["request_type"] == "e_login_verification":
-
-                self.connfd.send(b"allow_e_login")
-            # 确认注册的邮箱地址是否正确，并发送验证码
+                print("验证企业用户登陆")
+                handle.verify_login(self.connfd,client_request["data"],"enterprise")
+            # 确认注册的邮箱地址是否正确，并发送验证码 （已完成）
             elif client_request["request_type"] == "mail_register_code":
                 self.random_code = self.verify_code()
                 print(self.random_code)
@@ -67,25 +68,25 @@ class HelloJobServer(Thread):
                     self.connfd.send(b"mailaddr_ok")
                 else:
                     self.connfd.send(b"mailaddr_error")
-            # 确认验证码是否正确，确认账号是否存在，密码是否正确，都正确则将注册信息存入数据库。
+            # 确认验证码是否正确，确认账号是否存在，密码是否正确，都正确则将注册信息存入数据库。(已完成)
             elif client_request["request_type"] == "submit_register":
-                print(self.random_code)
+                print("验证注册信息")
                 if self.random_code == client_request["data"]["verify_code"]:
-                    print("注册成功")
-                    self.connfd.send("register_success".encode())
+                    handle.verify_regist(self.connfd,client_request["data"])
                 else:
                     self.connfd.send("code_error".encode())
             # 完善信息，接收个人信息和简历
             elif client_request["request_type"] == "p_submit_info":
                 print("把完善的个人信息写入数据库")
                 self.connfd.send(b"submit_info_success")
-            # 接收查询工作的请求，并返回结果。
+            # 接收查询工作的请求，并返回结果。（已完成）
             elif client_request["request_type"] == "search_position":
                 print(client_request["data"])
-                handle.search_position(self.connfd,db,client_request["data"])
+                handle.search_position(self.connfd,client_request["data"])
+            # hr添加职位 （已完成）
             elif client_request["request_type"] == "add_position":
                 print("添加的职位")
-                handle.add_position(self.connfd, db, client_request["data"])
+                handle.add_position(self.connfd, client_request["data"])
 
 
 
