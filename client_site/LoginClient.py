@@ -111,7 +111,7 @@ class PersonalLogin:
             tkinter.messagebox.showinfo(title='Hello Job', message='账号不存在')
         elif data == "password_error":
             tkinter.messagebox.showinfo(title='Hello Job', message='密码错误')
-        elif data == "allow_p_login":
+        elif data == "allow_login":
             login_account = self.var_usr_name.get()
             self.window.destroy()
             global pview_tk
@@ -331,6 +331,7 @@ class PersonalView(Thread):
     def insert_jobdata(self):
         rec_data = hj_sock.recv(1024 * 1024).decode()
         result = json.loads(rec_data)
+        print(result)
         for i in result["data"]:
             list = [i['position'],i['enterprise'],i['salary'],i['duties'],i['hr']]
             # li = ["工程师", "百度科技有限公司", "20000", "吃喝玩乐", "迪丽热巴" + str(i)]
@@ -490,7 +491,7 @@ class EnterpriseLogin:
         elif not user_pwd:
             tkinter.messagebox.showinfo(title='Hello Job', message='密码不能为空')
         else:
-            data = {"request_type": "e_login_verification", "data": {"username": user_name, "password": user_pwd}}
+            data = {"request_type": "e_login_verification", "data": {"account": user_name, "password": user_pwd}}
             hj_sock.send(json.dumps(data).encode())
             self.check_login()
 
@@ -501,7 +502,7 @@ class EnterpriseLogin:
             tkinter.messagebox.showinfo(title='Hello Job', message='账号不存在')
         elif data == "password_error":
             tkinter.messagebox.showinfo(title='Hello Job', message='密码错误')
-        elif data == "allow_e_login":
+        elif data == "allow_login":
             login_account = self.var_usr_name.get()
             self.window.destroy()
             global eview_tk
@@ -589,9 +590,9 @@ class EnterpriseView(Thread):
     def find_applicant(self):
         postion_name = self.postion.get()
         salary_range = self.salary_range.get()
-        data = {"request_type": "search_position", "data":
-            {"postion_name": postion_name,
-             "salary_range": salary_range}}
+        data = {"request_type": "search_applicant", "data":
+            {"wanted_position": postion_name,
+             "wanted_salary": salary_range}}
         hj_sock.send(json.dumps(data).encode())
         # rec_data = hj_sock.recv(1024 * 1024).decode()
         self.clear_data()

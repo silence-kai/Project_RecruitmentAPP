@@ -48,7 +48,7 @@ class HelloJobServer(Thread):
         # 循环接受请求
         while True:
             data = self.connfd.recv(1024 * 1024).decode()
-            # print("Request:", data)
+            print("Request:", data)
             if not data:
                 return
             client_request = json.loads(data)
@@ -59,7 +59,7 @@ class HelloJobServer(Thread):
             # 企业登陆确认，账号是否存在，密码石头正确,没问题就允许登陆（已完成）
             elif client_request["request_type"] == "e_login_verification":
                 print("验证企业用户登陆")
-                handle.verify_login(self.connfd,client_request["data"],"enterprise")
+                handle.verify_login(self.connfd,client_request["data"],"hr")
             # 确认注册的邮箱地址是否正确，并发送验证码 （已完成）
             elif client_request["request_type"] == "mail_register_code":
                 self.random_code = self.verify_code()
