@@ -224,8 +224,7 @@ class PersonalRegister:
 # 个人操作界面
 class PersonalView(Thread):
     ADDR = ('127.0.0.1', 8401)
-    chat_sock = socket()
-    chat_sock.connect(ADDR)
+    chat_sock = socket(AF_INET, SOCK_DGRAM)
 
     def __init__(self, master, account):
         super().__init__()
@@ -303,13 +302,13 @@ class PersonalView(Thread):
         salary_range = self.salary_range.get()
         if salary_range == "20000以上":
             data = {"request_type": "search_position", "data":
-                {"account": self.account,  "position": postion_name,"salary": "20000-999999","enterprise": company_name
+                {"account": self.account, "position": postion_name, "salary": "20000-999999", "enterprise": company_name
                  }}
             print(data)
             hj_sock.send(json.dumps(data).encode())
         else:
             data = {"request_type": "search_position", "data":
-                {"account": self.account,  "position": postion_name,"salary": salary_range,"enterprise": company_name
+                {"account": self.account, "position": postion_name, "salary": salary_range, "enterprise": company_name
                  }}
             print(data)
             hj_sock.send(json.dumps(data).encode())
@@ -333,7 +332,7 @@ class PersonalView(Thread):
         result = json.loads(rec_data)
         print(result)
         for i in result["data"]:
-            list = [i['position'],i['enterprise'],i['salary'],i['duties'],i['hr']]
+            list = [i['position'], i['enterprise'], i['salary'], i['duties'], i['hr']]
             # li = ["工程师", "百度科技有限公司", "20000", "吃喝玩乐", "迪丽热巴" + str(i)]
             self.data_tree.insert('', 'end', values=list)
 
@@ -422,12 +421,12 @@ class PersonalInfo:
 
     # 确认提交个人信息,包括简历
     def submit_info(self):
-        expected_salary = self.expected_salary.get()
-        expected_postion = self.expected_postion.get()
-        person_name = self.person_name.get()
+        wanted_salary = self.expected_salary.get()
+        wanted_postion = self.expected_postion.get()
+        name = self.person_name.get()
         data = {"request_type": "p_submit_info", "data":
-            {"account": self.account, "name": person_name, "salary": expected_salary,
-             "postion": expected_postion, "resume": self.resume_conent}}
+            {"account": self.account, "name": name, "wanted_salary": wanted_salary,
+             "wanted_postion": wanted_postion, "resume": self.resume_conent}}
         hj_sock.send(json.dumps(data).encode())
         self.confirm_submit()
 
@@ -519,8 +518,7 @@ class EnterpriseLogin:
 # 企业操作界面
 class EnterpriseView(Thread):
     ADDR = ('127.0.0.1', 8401)
-    chat_sock = socket()
-    chat_sock.connect(ADDR)
+    chat_sock = socket(AF_INET, SOCK_DGRAM)
 
     def __init__(self, master, account):
         super().__init__()
@@ -574,6 +572,8 @@ class EnterpriseView(Thread):
         self.text_msg = Text(self.window, width=65, height=10, bg='white')
         self.text_msg.place(x=700, y=460)
         self.send_msg = Button(self.window, text="发送", command=self.send_chatmsg, font=("黑体", 15)).place(x=700, y=600)
+        self.send_msg = Button(self.window, text="下载简历", command=self.download_resume, font=("黑体", 15)).place(x=800,
+                                                                                                              y=600)
 
     def window_postion(self):
         alignstr = '%dx%d+%d+%d' % (
@@ -590,13 +590,23 @@ class EnterpriseView(Thread):
     def find_applicant(self):
         postion_name = self.postion.get()
         salary_range = self.salary_range.get()
-        data = {"request_type": "search_applicant", "data":
-            {"wanted_position": postion_name,
-             "wanted_salary": salary_range}}
+        if salary_range == "20000以上":
+            data = {"request_type": "search_applicant", "data":
+                {"wanted_position": postion_name,
+                 "wanted_salary": 20000 - 999999}}
+        else:
+            data = {"request_type": "search_applicant", "data":
+                {"wanted_position": postion_name,
+                 "wanted_salary": salary_range}}
         hj_sock.send(json.dumps(data).encode())
-        # rec_data = hj_sock.recv(1024 * 1024).decode()
-        self.clear_data()
-        self.insert_result()
+        rec_data = hj_sock.recv(1024 * 1024).decode()
+        print(rec_data)
+        if rec_data == "get_applicant_failed":
+            self.clear_data()
+            tkinter.messagebox.showinfo(title='Hello Job', message='没有找到符合的求职者')
+        elif rec_data == "get_applicant_success":
+            self.clear_data()
+            self.insert_result()
 
     # 在查询工作前先清空之前查询的结果
     def clear_data(self):
@@ -606,11 +616,15 @@ class EnterpriseView(Thread):
 
     # 将返回的结果写入列表
     def insert_result(self):
-        for i in range(20):
-            li = ["张三%s"%i, "123465789@qq.com", "总经理", 20000]
-            self.data_tree.insert('', 'end', values=li)
+        rec_data = hj_sock.recv(1024 * 1024).decode()
+        result = json.loads(rec_data)
+        print(result)
+        for i in result["data"]:
+            list = [i['name'], i['account'], i['wanted_position'], i['wanted_salary']]
+            # li = ["工程师", "百度科技有限公司", "20000", "吃喝玩乐", "迪丽热巴" + str(i)]
+            self.data_tree.insert('', 'end', values=list)
 
-    # 双击HR聊天,调取聊天室,如果切换了聊天对象，则清空收消息框的内容。提示与谁聊天中
+    # 双击求职者聊天,调取聊天室,如果切换了聊天对象，则清空收消息框的内容。提示与谁聊天中
     def treeviewClick(self, event):
         for item in self.data_tree.selection():
             self.choose_info = self.data_tree.item(item, "values")
@@ -624,17 +638,29 @@ class EnterpriseView(Thread):
             self.text_msglist.delete('0.0', END)
             self.chat_info = self.choose_info
 
+    # 下载简历
+    def download_resume(self):
+        data = {"request_type": "download_resume", "data":
+            {"account": self.choose_info[1]}}
+        hj_sock.send(json.dumps(data).encode())
+        save_path = tkinter.filedialog.asksaveasfilename(title='保存文件')
+        print(save_path)
+        rec_data = hj_sock.recv(1024 * 1024).decode()
+        resume_content = json.loads(rec_data)
+        with open(save_path, "wb") as f:
+            f.write(resume_content["data"].encode())
+
     # 发送聊天信息，不能发送空内容，发送From,To,时间,内容到服务器
     def send_chatmsg(self):
         if self.text_msg.get("0.0", END) == "\n":
             tkinter.messagebox.showinfo(title='Error', message='不能发送空内容')
         else:
             c_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) + '\n'
-            data = {"request_type": "p_send_msg", "data":
+            data = {"request_type": "send_msg", "data":
                 {"From": self.account, "To": self.chat_info[1], "send_time": c_time,
                  "send_content": self.text_msg.get("0.0", END)}}
-            # self.chat_sock.send(json.dumps(data).encode())
-            # print(data)
+            self.chat_sock.sendto(json.dumps(data).encode(), ADDR)
+            print(data)
             self.deal_send(c_time)
 
     # 处理发送聊天框，发送完内容，发送框内清空,把自己发的消息打印到收消息框
@@ -647,6 +673,8 @@ class EnterpriseView(Thread):
         self.text_msg.delete('0.0', END)
 
     def run(self):
+        data = {'request_type': "login_chat", "account": self.account}
+        self.chat_sock.sendto(json.dumps(data).encode(), ADDR)
         Receive(self.text_msglist, self.chat_sock)
 
     def user_quit(self):
@@ -657,6 +685,7 @@ class EnterpriseView(Thread):
 
 # 添加职位
 class AddPosition:
+
     def __init__(self, master, account):
         self.account = account
         self.window = Toplevel(master)
@@ -712,10 +741,12 @@ class AddPosition:
 
 # 收取聊天信息
 class Receive():
+
     def __init__(self, text_msglist, chat_sock):
+
         while True:
             try:
-                data = chat_sock.recv(1024 * 1024).decode()
+                data = chat_sock.recvfrom(1024*1024).decode()
                 rec_data = json.loads(data)
                 record_from = "%s %s\n" % (rec_data["from"], rec_data["send_time"])
                 text_msglist.tag_config("green", foreground='green')

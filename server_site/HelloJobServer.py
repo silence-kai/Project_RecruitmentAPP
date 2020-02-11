@@ -19,15 +19,6 @@ from server_site import handle
 
 # 全局变量socket从config中调取socket参数
 SOCKET_ADDR = (socket_host, socket_port)
-# mysql 从config中调取连接mysql的参数
-# db = pymysql.connect(host=mysql_host,
-#                      port=mysql_port,
-#                      user=mysql_user,
-#                      password=mysql_password,
-#                      database=mysql_database,
-#                      charset="utf8")
-
-
 
 
 # 文件处理功能
@@ -87,6 +78,12 @@ class HelloJobServer(Thread):
             elif client_request["request_type"] == "add_position":
                 print("添加的职位")
                 handle.add_position(self.connfd, client_request["data"])
+            # 下载简历
+            elif client_request["request_type"] == "download_resume":
+                pass
+            #查找求职者
+            elif client_request["request_type"] == "search_applicant":
+                handle.search_applicant(self.connfd, client_request["data"])
 
 
 

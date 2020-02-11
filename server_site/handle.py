@@ -7,7 +7,7 @@ import pymysql
 from decimal import Decimal
 from time import sleep
 from server_site.config import *
-from server_site.module import PositionModel, AccountModel
+from server_site.module import PositionModel, AccountModel,SearchApplicant
 
 db = pymysql.connect(host=mysql_host,
                      port=mysql_port,
@@ -16,32 +16,9 @@ db = pymysql.connect(host=mysql_host,
                      database=mysql_database,
                      charset="utf8")
 
-def search_position(connfd,  data):
+
+def search_position(connfd, data):
     search_position = PositionModel(db)
-    # # print(data)
-    # result = search_position.get_position(data["account"], data["position"], data["salary"], data["enterprise"])
-    # if not result:
-    #     connfd.send(b'get_position_failed')
-    #     return
-    # connfd.send(b'get_position_success')
-    # column = ("position", "enterprise", "salary", "duties", "hr")
-    # list_result = []
-    # for res in result:
-    #     dict_res = {}
-    #     for i in range(len(res)):
-    #         if i == 2:
-    #             salary = str(res[2])
-    #             dict_res[column[i]] = salary
-    #             continue
-    #         dict_res[column[i]] = res[i]
-    #     list_result.append(dict_res)
-    # data = {"request_type": "search_position", "data": list_result}
-    # data_send = json.dumps(data)
-    # sleep(0.1)
-    # print(data_send.encode())
-    # connfd.send(data_send.encode())
-    # sleep(0.1)
-    # connfd.send(b'##')
     result = search_position.get_position(data["account"], data["position"], data["salary"], data["enterprise"])
     print(result)
     if not result:
@@ -70,7 +47,7 @@ def search_position(connfd,  data):
     connfd.send(data_send.encode())
 
 
-def add_position(connfd,  data):
+def add_position(connfd, data):
     add_position = PositionModel(db)
     print(data["account"])
     hr_info = add_position.get_hr(data["account"])
@@ -83,7 +60,7 @@ def add_position(connfd,  data):
         connfd.send(b'add_position_failed')
 
 
-def verify_login(connfd, data,mode):
+def verify_login(connfd, data, mode):
     """
     验证登录账号密码正确性，发送对应字节码
     :param connfd: 客户端
@@ -91,7 +68,7 @@ def verify_login(connfd, data,mode):
     :return: Non]
     """
     p_login = AccountModel(db)
-    msg = p_login.user_information_judgment(data["account"], data["password"],mode)
+    msg = p_login.user_information_judgment(data["account"], data["password"], mode)
     if msg == "No_account":
         connfd.send(b"user_not_exist")  # 账号不存在
     elif msg == "Password_wrong":
@@ -113,7 +90,31 @@ def verify_regist(connfd, data):
         connfd.send(b"unknown_error")
 
 
-
+def search_applicant(connfd, data):
+    db_ = SearchApplicant(db)
+    result = db_.search_applicant(data["wanted_position"], data["wanted_salary"])
+    if not result:
+        connfd.send(b'get_applicant_failed')
+        return
+    connfd.send(b'get_applicant_success')
+    column = ("name", "account", "wanted_position", "wanted_salary", "id")
+    result_list = []
+    for res in result:
+        dict_res = {}
+        for i in range(len(res)):
+            if i == 3:
+                salary = str(res[3])
+                dict_res[column[i]] = salary
+                continue
+            dict_res[column[i]] = res[i]
+        result_list.append(dict_res)
+    data = {"request_type": "get_applicant", "data": result_list}
+    print(data)
+    data_send = json.dumps(data)
+    sleep(0.1)
+    connfd.send(data_send.encode())
 
 # if __name__ == '__main__':
-#     data = '{"account": "123543@qq.com", "postion": "开发工程师", "duties": "负责开发工作","salary": "23000"}'
+    # data = '{"account": "123543@qq.com", "postion": "开发工程师", "duties": "负责开发工作","salary": "23000"}'#
+    # data = {"wanted_position":"程序员","wanted_salary":"0-5000"}
+    # search_applicant("1",data)

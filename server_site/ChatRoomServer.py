@@ -4,6 +4,7 @@ import sys
 import json
 import pymysql
 import time
+import os
 
 # 全局变量
 HOST = '0.0.0.0'
@@ -19,62 +20,61 @@ db = pymysql.connect(host="localhost",
                      charset="utf8")
 
 
-class ChatServer(Thread):
-    def __init__(self, connfd):
-        super().__init__()
-        self.connfd = connfd
-
-    def run(self):
-        while True:
-
-            data = self.connfd.recv(1024 * 1024).decode()
-            print("Request:", data)
-            client_request = json.loads(data)
-            if not data:
-                return
-            elif client_request["request_type"] == "p_get_record":
-                if client_request["data"]["From"] == "迪丽热巴1":
-                    data = {"from": "百度", "send_time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-                            "send_content": "我是百度HR迪丽热巴1号"}
-                    self.connfd.send(json.dumps(data).encode())
-                if client_request["data"]["From"] == "迪丽热巴3":
-                    data = {"from": "百度", "send_time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-                            "send_content": "我是百度HR迪丽热巴2号"}
-                    self.connfd.send(json.dumps(data).encode())
-            elif client_request["request_type"] == "p_send_msg":
-                if client_request["data"]["To"] == "迪丽热巴1":
-                    data = {"from": "百度", "send_time": "2020.1.8", "send_content": "迪丽热巴1"}
-                    self.connfd.send(json.dumps(data).encode())
-                if client_request["data"]["To"] == "迪丽热巴3":
-                    data = {"from": "百度", "send_time": "2020.1.8", "send_content": "迪丽热巴3"}
-                    self.connfd.send(json.dumps(data).encode())
+# 有特定意义的变量，或者很多函数/类中都会频繁使用的变量
+# 创建用户存储字典 {name:address}
+user = {}
 
 
-def main():
-    # 创建监听套接字
-    s = socket()
-    s.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-    s.bind(ADDR)
-    s.listen(3)
+# 用户登录
 
-    print('Listen the port 8041...')
-    # 循环等待客户端连接
+# 聊
+
+def record_ip():
+    pass
+# 退出
+def do_quit(s, name):
+     pass
+
+
+# 接受请求，分发任务
+def do_request(s):
     while True:
-        try:
-            c, addr = s.accept()
-            print("Connect from", addr)
-        except KeyboardInterrupt:
-            s.close()
-            sys.exit("服务器退出")
-        except Exception as e:
-            print(e)
-            continue
+        # 所有请求都在这里接受
+        data, addr = s.recvfrom(1024*1024)
+        rec_data = json.loads(data.decode()) # 拆分请求
+        print(rec_data)
+        # 任务分发 (LOGIN CHAT QUIT)
+        if rec_data['request_type'] == "login_chat":
+            record_ip()
+        elif rec_data['request_type'] == "p_send_msg":
+            pass
+        elif rec_data['request_type'] == "e_send_msg":
+            pass
+        elif rec_data['request_type'] == "quit":
+            if rec_data['data'] in user:
+                do_quit(s, rec_data['request_type'])
 
-        # 客户端连接 ，创建线程
-        t = ChatServer(c)
-        t.setDaemon(True)
-        t.start()
+
+# 搭建网络
+def main():
+    # udp服务端网络
+    s = socket(AF_INET, SOCK_DGRAM)
+    s.bind(ADDR)
+
+    pid = os.fork()
+    if pid < 0:
+        return
+    elif pid == 0:
+        # 发送管理员消息
+        while True:
+            text = input("管理员消息:")
+            msg = "CHAT 管理员 " + text
+            s.sendto(msg.encode(),ADDR)
+    else:
+        # 请求处理函数
+        do_request(s)
 
 
 if __name__ == '__main__':
     main()
+
