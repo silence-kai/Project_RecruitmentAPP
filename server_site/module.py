@@ -13,7 +13,7 @@ class PositionModel:
             self.cur.execute(sql)
             result = self.cur.fetchone()
             position = result[0]
-        sql = "select position.name,enterprise.enterprise_name,position.month_pay,position.content,hr.name,position.hr_id from position " \
+        sql = "select position.name,enterprise.enterprise_name,position.month_pay,position.content,hr.name,hr.hr_account from position " \
               "inner join enterprise on position.enterprise_id=enterprise.id " \
               "inner join hr on position.hr_id = hr.id where 1=1"
         if position:
@@ -61,7 +61,6 @@ class SearchApplicant:
         return self.cur.fetchall()
 
 
-
 class AccountModel:
     def __init__(self, db):
         self.db = db
@@ -106,6 +105,7 @@ class AccountModel:
         else:
             return "Account_exists"
 
+
 if __name__ == '__main__':
     db = pymysql.connect(host="localhost",
                          port=3306,
@@ -113,13 +113,13 @@ if __name__ == '__main__':
                          password="kai199418",
                          database="recruitment",
                          charset="utf8")
-# model = PositionModel(db)
-# #     print(model.get_position("111@163.com", "测试", None, None))
-#     # model.add_position("开发工程师", '24000', "熟练使用python语言，了解开发流程", 1, 1)
-#     # print(model.get_hr("alizhangsan"))
-#     model = AccountModel(db)
-#     print(model.user_information_judgment("123@qq.com","123456","hr"))
-#     print(model.verify_regist_info("911077046@qq.com","1234561"))
-#     print(model.verify_regist_info("911077046@qq.com", "1234561"))
+    # model = PositionModel(db)
+    # #     print(model.get_position("111@163.com", "测试", None, None))
+    #     # model.add_position("开发工程师", '24000', "熟练使用python语言，了解开发流程", 1, 1)
+    #     # print(model.get_hr("alizhangsan"))
+    #     model = AccountModel(db)
+    #     print(model.user_information_judgment("123@qq.com","123456","hr"))
+    #     print(model.verify_regist_info("911077046@qq.com","1234561"))
+    #     print(model.verify_regist_info("911077046@qq.com", "1234561"))
     model = SearchApplicant(db)
-    print(model.search_applicant("",""))
+    print(model.search_applicant("", ""))

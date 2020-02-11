@@ -20,30 +20,25 @@ db = pymysql.connect(host=mysql_host,
 def search_position(connfd, data):
     search_position = PositionModel(db)
     result = search_position.get_position(data["account"], data["position"], data["salary"], data["enterprise"])
-    print(result)
     if not result:
         connfd.send(b'get_position_failed')
         return
     connfd.send(b'get_position_success')
-    column = ("position", "enterprise", "salary", "duties", "hr", "hr_id")
+    column = ("position", "enterprise", "salary", "duties", "hr", "hr_account")
     list_result = []
     for res in result:
         dict_res = {}
-        print(res)
         for i in range(len(res)):
             if i == 2:
                 salary = str(res[2])
                 dict_res[column[i]] = salary
                 continue
             dict_res[column[i]] = res[i]
-            print(dict_res)
         list_result.append(dict_res)
     data = {"request_type": "search_position", "data": list_result}
     print(data)
     data_send = json.dumps(data)
-    print(data_send)
     sleep(0.1)
-    print(data_send.encode())
     connfd.send(data_send.encode())
 
 

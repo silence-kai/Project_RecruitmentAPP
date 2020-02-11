@@ -238,7 +238,8 @@ class PersonalView(Thread):
         self.control_layout()
         self.account = account
         self.chat_info = ""
-        self.choose_info = ""
+        self.choose_hr = ""
+        self.hr_dict={}
 
     def control_layout(self):
         Label(self.window, text='找工作，就来Hello Job!!!', font=("黑体", 25)).place(x=50, y=50)
@@ -304,16 +305,13 @@ class PersonalView(Thread):
             data = {"request_type": "search_position", "data":
                 {"account": self.account, "position": postion_name, "salary": "20000-999999", "enterprise": company_name
                  }}
-            print(data)
             hj_sock.send(json.dumps(data).encode())
         else:
             data = {"request_type": "search_position", "data":
                 {"account": self.account, "position": postion_name, "salary": salary_range, "enterprise": company_name
                  }}
-            print(data)
             hj_sock.send(json.dumps(data).encode())
         rec_data = hj_sock.recv(1024 * 1024).decode()
-        print(rec_data)
         if rec_data == "get_position_failed":
             tkinter.messagebox.showinfo(title='Hello Job', message='没有找到符合的工作')
         elif rec_data == "get_position_success":
@@ -330,25 +328,27 @@ class PersonalView(Thread):
     def insert_jobdata(self):
         rec_data = hj_sock.recv(1024 * 1024).decode()
         result = json.loads(rec_data)
-        print(result)
+        self.hr_dict.clear()
         for i in result["data"]:
-            list = [i['position'], i['enterprise'], i['salary'], i['duties'], i['hr']]
-            # li = ["工程师", "百度科技有限公司", "20000", "吃喝玩乐", "迪丽热巴" + str(i)]
+            list = (i['position'], i['enterprise'], i['salary'], i['duties'], i['hr'])
+            self.hr_dict[str(list)] =i["hr_account"]
             self.data_tree.insert('', 'end', values=list)
+        print(self.hr_dict)
+
 
     # 双击HR聊天,调取聊天室,如果切换了聊天对象，则清空收消息框的内容。提示与谁聊天中
     def treeviewClick(self, event):
         for item in self.data_tree.selection():
-            self.choose_info = self.data_tree.item(item, "values")
-        print(self.choose_info)
-        if self.chat_info != self.choose_info:
-            data = {"request_type": "p_get_record", "data":
-                {"From": self.choose_info[4], "To": self.account}}
-            tip = "与%s沟通中..." % self.choose_info[4]
-            self.tip_chat = Label(self.window, text=tip, font=("黑体", 15)).place(x=700, y=120)
-            self.chat_sock.send(json.dumps(data).encode())
+            self.choose_hr = self.data_tree.item(item, "values")
+        print(self.choose_hr)
+        if self.chat_info != self.choose_hr:
+            # data = {"request_type": "p_get_record", "data":
+            #     {"From": self.choose_info[4], "To": self.account}}
+            # tip = "与%s沟通中..." % self.choose_info[4]
+            # self.tip_chat = Label(self.window, text=tip, font=("黑体", 15)).place(x=700, y=120)
+            # self.chat_sock.send(json.dumps(data).encode())
             self.text_msglist.delete('0.0', END)
-            self.chat_info = self.choose_info
+            self.chat_info = self.choose_hr
 
     # 发送聊天信息，不能发送空内容，发送From,To,时间,内容到服务器
     def send_chatmsg(self):
@@ -621,7 +621,6 @@ class EnterpriseView(Thread):
         print(result)
         for i in result["data"]:
             list = [i['name'], i['account'], i['wanted_position'], i['wanted_salary']]
-            # li = ["工程师", "百度科技有限公司", "20000", "吃喝玩乐", "迪丽热巴" + str(i)]
             self.data_tree.insert('', 'end', values=list)
 
     # 双击求职者聊天,调取聊天室,如果切换了聊天对象，则清空收消息框的内容。提示与谁聊天中
