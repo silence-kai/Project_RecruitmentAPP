@@ -7,7 +7,7 @@ class MailCode:
     def __init__(self,receivers,virify_code):
         self.__mail_host = "smtp.qq.com"
         self.__sender = '911077046@qq.com'
-        self.__mail_pass = "uctrsytiboakbbhh"
+        self.__mail_pass = "qolebnkqdrhubegb"
         self.receivers = receivers
         self.virify_code = virify_code
 
@@ -26,3 +26,7 @@ class MailCode:
         except smtplib.SMTPException:
             print("Error: 邮件发送失败")
             return False
+
+if __name__ == '__main__':
+    a = MailCode("911077046@qq.com","123456")
+    a.mail_task()

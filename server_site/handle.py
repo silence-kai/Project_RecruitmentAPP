@@ -7,7 +7,7 @@ import pymysql
 from decimal import Decimal
 from time import sleep
 from server_site.config import *
-from server_site.module import PositionModel, AccountModel,SearchApplicant
+from server_site.module import PositionModel, AccountModel, ApplicantInfoModel
 
 db = pymysql.connect(host=mysql_host,
                      port=mysql_port,
@@ -86,8 +86,8 @@ def verify_regist(connfd, data):
 
 
 def search_applicant(connfd, data):
-    db_ = SearchApplicant(db)
-    result = db_.search_applicant(data["wanted_position"], data["wanted_salary"])
+    db_search = ApplicantInfoModel(db)
+    result = db_search.search_applicant(data["wanted_position"], data["wanted_salary"])
     if not result:
         connfd.send(b'get_applicant_failed')
         return
@@ -109,7 +109,43 @@ def search_applicant(connfd, data):
     sleep(0.1)
     connfd.send(data_send.encode())
 
+
+def complete_user_information(connfd, data):
+    """
+    完善用户信息，发送对应成败字节码
+    :param connfd: 客户端
+    :param db: 数据库
+    :param data: 用户信息包
+    :return: None
+    """
+    usrdb = ApplicantInfoModel(db)
+    result = usrdb.update_user_information(data["account"], data["name"], data["wanted_salary"],
+                                           data["wanted_position"],
+                                           data["resume"])
+    if result:
+        connfd.send(b"submit_info_success")
+        return
+    else:
+        connfd.send(b"submit_info_failed")
+        return
+
+
+def download_user_resume(connfd, data):
+    """
+    下载用户简历
+    :param connfd: 客户端
+    :param db: 数据库
+    :param data: 传入数据
+    :return: 没有简历 或 简历字符串
+    """
+    download_resume = ApplicantInfoModel(db)
+    result = download_resume.resume_download(data['account'])
+    if result == "no_resume":
+        connfd.send(b'no_resume')
+    else:
+        connfd.send(result.encode())
+
 # if __name__ == '__main__':
-    # data = '{"account": "123543@qq.com", "postion": "开发工程师", "duties": "负责开发工作","salary": "23000"}'#
-    # data = {"wanted_position":"程序员","wanted_salary":"0-5000"}
-    # search_applicant("1",data)
+# data = '{"account": "123543@qq.com", "postion": "开发工程师", "duties": "负责开发工作","salary": "23000"}'#
+# data = {"wanted_position":"程序员","wanted_salary":"0-5000"}
+# search_applicant("1",data)

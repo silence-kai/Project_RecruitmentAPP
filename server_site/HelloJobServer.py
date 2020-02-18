@@ -21,7 +21,7 @@ from server_site import handle
 SOCKET_ADDR = (socket_host, socket_port)
 
 
-# 文件处理功能
+
 class HelloJobServer(Thread):
     def __init__(self, connfd):
         super().__init__()
@@ -45,43 +45,37 @@ class HelloJobServer(Thread):
             client_request = json.loads(data)
             # 个人登陆确认，账号是否存在，密码石头正确,没问题就允许登陆（已完成）
             if client_request["request_type"] == "p_login_verification":
-                print("验证个人用户登陆")
                 handle.verify_login(self.connfd,client_request["data"],"applicant")
             # 企业登陆确认，账号是否存在，密码石头正确,没问题就允许登陆（已完成）
             elif client_request["request_type"] == "e_login_verification":
-                print("验证企业用户登陆")
                 handle.verify_login(self.connfd,client_request["data"],"hr")
             # 确认注册的邮箱地址是否正确，并发送验证码 （已完成）
             elif client_request["request_type"] == "mail_register_code":
                 self.random_code = self.verify_code()
-                print(self.random_code)
                 if MailCode(client_request["data"]["mailaddr"], self.random_code).mail_task():
                     self.connfd.send(b"mailaddr_ok")
                 else:
                     self.connfd.send(b"mailaddr_error")
             # 确认验证码是否正确，确认账号是否存在，密码是否正确，都正确则将注册信息存入数据库。(已完成)
             elif client_request["request_type"] == "submit_register":
-                print("验证注册信息")
                 if self.random_code == client_request["data"]["verify_code"]:
                     handle.verify_regist(self.connfd,client_request["data"])
                 else:
                     self.connfd.send("code_error".encode())
-            # 完善信息，接收个人信息和简历
+            # 完善信息，接收个人信息和简历（已完成）
             elif client_request["request_type"] == "p_submit_info":
-                print("把完善的个人信息写入数据库")
-                self.connfd.send(b"submit_info_success")
+                handle.complete_user_information(self.connfd,client_request["data"])
             # 接收查询工作的请求，并返回结果。（已完成）
             elif client_request["request_type"] == "search_position":
-                print(client_request["data"])
                 handle.search_position(self.connfd,client_request["data"])
             # hr添加职位 （已完成）
             elif client_request["request_type"] == "add_position":
-                print("添加的职位")
+                print('请求下载简历')
                 handle.add_position(self.connfd, client_request["data"])
             # 下载简历
             elif client_request["request_type"] == "download_resume":
-                pass
-            #查找求职者
+                handle.download_user_resume(self.connfd,client_request["data"])
+            #查找求职者（已完成）
             elif client_request["request_type"] == "search_applicant":
                 handle.search_applicant(self.connfd, client_request["data"])
 

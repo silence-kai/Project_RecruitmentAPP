@@ -393,7 +393,7 @@ class PersonalInfo:
         self.resume_path = Entry(self.window, width='20', font=("黑体", 15))
         self.person_name = StringVar()
         self.expected_salary = StringVar()
-        self.expected_postion = StringVar()
+        self.expected_position = StringVar()
         self.control_layout()
         self.window_postion()
         self.resume_conent = None
@@ -405,7 +405,7 @@ class PersonalInfo:
         Label(self.window, text='上传简历:', font=("黑体", 15)).place(x=150, y=200)
         Entry(self.window, textvariable=self.person_name, font=("黑体", 15)).place(x=250, y=80)
         Entry(self.window, textvariable=self.expected_salary, font=("黑体", 15)).place(x=250, y=120)
-        Entry(self.window, textvariable=self.expected_postion, font=("黑体", 15)).place(x=250, y=160)
+        Entry(self.window, textvariable=self.expected_position, font=("黑体", 15)).place(x=250, y=160)
         self.resume_path.grid(row=0, column=1)
         self.resume_path.place(x=250, y=200)
         Button(self.window, text="选择文件", command=self.select_file, font=("黑体", 15)).place(x=460, y=200)
@@ -422,11 +422,13 @@ class PersonalInfo:
     # 确认提交个人信息,包括简历
     def submit_info(self):
         wanted_salary = self.expected_salary.get()
-        wanted_postion = self.expected_postion.get()
+        wanted_position = self.expected_position.get()
         name = self.person_name.get()
         data = {"request_type": "p_submit_info", "data":
             {"account": self.account, "name": name, "wanted_salary": wanted_salary,
-             "wanted_postion": wanted_postion, "resume": self.resume_conent}}
+             "wanted_position": wanted_position, "resume": self.resume_conent}}
+        print(data)
+        print(json.dumps(data))
         hj_sock.send(json.dumps(data).encode())
         self.confirm_submit()
 
@@ -434,10 +436,10 @@ class PersonalInfo:
     def confirm_submit(self):
         data = hj_sock.recv(1024).decode()
         if data == "submit_info_success":
-            tkinter.messagebox.showinfo(title='Hello Job', message='提交成功')
+            tkinter.messagebox.showinfo(title='信息提交', message='提交成功')
             self.window.destroy()
         if data == "submit_info_failed":
-            tkinter.messagebox.showinfo(title='Hello Job', message='提交失败')
+            tkinter.messagebox.showinfo(title='信息提交', message='提交失败')
 
     # 选择简历文件
     def select_file(self):
@@ -447,8 +449,8 @@ class PersonalInfo:
 
     # 读取选择文件中的内容
     def read_resume(self, file_path):
-        f = open(file_path, "r", encoding="utf-8")
-        self.resume_conent = f.read()
+        f = open(file_path, "rb")
+        self.resume_conent = f.read().decode()
 
     def user_quit(self):
         self.window.destroy()
@@ -645,9 +647,11 @@ class EnterpriseView(Thread):
         save_path = tkinter.filedialog.asksaveasfilename(title='保存文件')
         print(save_path)
         rec_data = hj_sock.recv(1024 * 1024).decode()
-        resume_content = json.loads(rec_data)
-        with open(save_path, "wb") as f:
-            f.write(resume_content["data"].encode())
+        if rec_data == "no_resume":
+            tkinter.messagebox.showinfo(title='Error', message='改求职者没有上传简历')
+        else:
+            with open(save_path, "wb") as f:
+                f.write(rec_data.encode())
 
     # 发送聊天信息，不能发送空内容，发送From,To,时间,内容到服务器
     def send_chatmsg(self):
