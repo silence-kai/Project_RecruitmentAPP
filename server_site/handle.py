@@ -4,7 +4,6 @@ author:李超
 """
 import json
 import pymysql
-from decimal import Decimal
 from time import sleep
 from server_site.config import *
 from server_site.module import PositionModel, AccountModel, ApplicantInfoModel
@@ -16,7 +15,7 @@ db = pymysql.connect(host=mysql_host,
                      database=mysql_database,
                      charset="utf8")
 
-
+#查询职位
 def search_position(connfd, data):
     search_position = PositionModel(db)
     result = search_position.get_position(data["account"], data["position"], data["salary"], data["enterprise"])
@@ -41,7 +40,7 @@ def search_position(connfd, data):
     sleep(0.1)
     connfd.send(data_send.encode())
 
-
+#添加职位
 def add_position(connfd, data):
     add_position = PositionModel(db)
     print(data["account"])
@@ -54,7 +53,7 @@ def add_position(connfd, data):
     else:
         connfd.send(b'add_position_failed')
 
-
+#验证登陆
 def verify_login(connfd, data, mode):
     """
     验证登录账号密码正确性，发送对应字节码
@@ -71,7 +70,7 @@ def verify_login(connfd, data, mode):
     elif msg == "Allow_login":
         connfd.send(b"allow_login")  # 审核通过
 
-
+#验证注册
 def verify_regist(connfd, data):
     verify_regist = AccountModel(db)
     msg = verify_regist.verify_regist_info(data["account"], data["password"])
@@ -84,7 +83,7 @@ def verify_regist(connfd, data):
     elif msg == "Unknown_error":
         connfd.send(b"unknown_error")
 
-
+#找求职者
 def search_applicant(connfd, data):
     db_search = ApplicantInfoModel(db)
     result = db_search.search_applicant(data["wanted_position"], data["wanted_salary"])
@@ -109,7 +108,7 @@ def search_applicant(connfd, data):
     sleep(0.1)
     connfd.send(data_send.encode())
 
-
+#完善用户信息
 def complete_user_information(connfd, data):
     """
     完善用户信息，发送对应成败字节码
@@ -129,7 +128,7 @@ def complete_user_information(connfd, data):
         connfd.send(b"submit_info_failed")
         return
 
-
+#下载简历
 def download_user_resume(connfd, data):
     """
     下载用户简历
@@ -145,7 +144,4 @@ def download_user_resume(connfd, data):
     else:
         connfd.send(result.encode())
 
-# if __name__ == '__main__':
-# data = '{"account": "123543@qq.com", "postion": "开发工程师", "duties": "负责开发工作","salary": "23000"}'#
-# data = {"wanted_position":"程序员","wanted_salary":"0-5000"}
-# search_applicant("1",data)
+

@@ -226,6 +226,7 @@ class PersonalView(Thread):
     ADDR = ('127.0.0.1', 8401)
     chat_sock = socket(AF_INET, SOCK_DGRAM)
 
+
     def __init__(self, master, account):
         super().__init__()
         self.window = master
@@ -239,7 +240,9 @@ class PersonalView(Thread):
         self.account = account
         self.chat_info = ""
         self.choose_hr = ""
-        self.hr_dict={}
+        self.hr_dict = {}
+        data = {"request_type": "e_login", "data": {"account": self.account}}
+        self.chat_sock.sendto(json.dumps(data).encode(), self.ADDR)
 
     def control_layout(self):
         Label(self.window, text='找工作，就来Hello Job!!!', font=("黑体", 25)).place(x=50, y=50)
@@ -331,10 +334,9 @@ class PersonalView(Thread):
         self.hr_dict.clear()
         for i in result["data"]:
             list = (i['position'], i['enterprise'], i['salary'], i['duties'], i['hr'])
-            self.hr_dict[str(list)] =i["hr_account"]
+            self.hr_dict[str(list)] = i["hr_account"]
             self.data_tree.insert('', 'end', values=list)
         print(self.hr_dict)
-
 
     # 双击HR聊天,调取聊天室,如果切换了聊天对象，则清空收消息框的内容。提示与谁聊天中
     def treeviewClick(self, event):
@@ -342,10 +344,10 @@ class PersonalView(Thread):
             self.choose_hr = self.data_tree.item(item, "values")
         print(self.choose_hr)
         if self.chat_info != self.choose_hr:
-            # data = {"request_type": "p_get_record", "data":
-            #     {"From": self.choose_info[4], "To": self.account}}
-            # tip = "与%s沟通中..." % self.choose_info[4]
-            # self.tip_chat = Label(self.window, text=tip, font=("黑体", 15)).place(x=700, y=120)
+            data = {"request_type": "p_get_record", "data":
+                {"From": self.choose_hr[4], "To": self.account}}
+            tip = "与%s沟通中..." % self.choose_hr[4]
+            self.tip_chat = Label(self.window, text=tip, font=("黑体", 15)).place(x=700, y=120)
             # self.chat_sock.send(json.dumps(data).encode())
             self.text_msglist.delete('0.0', END)
             self.chat_info = self.choose_hr
@@ -373,7 +375,7 @@ class PersonalView(Thread):
         self.text_msg.delete('0.0', END)
 
     def run(self):
-        Receive(self.text_msglist, self.chat_sock)
+        Receive(self.text_msglist, self.chat_sock,self.account)
 
     def user_quit(self):
         self.window.destroy()
@@ -678,7 +680,7 @@ class EnterpriseView(Thread):
     def run(self):
         data = {'request_type': "login_chat", "account": self.account}
         self.chat_sock.sendto(json.dumps(data).encode(), ADDR)
-        Receive(self.text_msglist, self.chat_sock)
+        Receive(self.text_msglist, self.chat_sock,self.account)
 
     def user_quit(self):
         self.window.destroy()
@@ -745,22 +747,21 @@ class AddPosition:
 # 收取聊天信息
 class Receive():
 
-    def __init__(self, text_msglist, chat_sock):
-
+    def __init__(self, text_msglist, chat_sock,account):
+        self.account =account
         while True:
-            try:
-                data = chat_sock.recvfrom(1024*1024).decode()
-                rec_data = json.loads(data)
-                record_from = "%s %s\n" % (rec_data["from"], rec_data["send_time"])
+            data = chat_sock.recvfrom(1024 * 1024).decode()
+            rec_msg = json.loads(data)
+            if rec_msg["msg_type"] == "offline_msg":
+                for item in rec_msg["data"]:
+                    with open("../chat_record/%s/%s"%(self.account,rec_msg["data"][0]),"a") as f:
+                        f.write("%s\n"%(json.dumps(item)))
+            if rec_msg["msg_type"] == "online_msg":
+                record_from = "%s %s\n" % (rec_msg["data"]["from"], rec_msg["dataa"]["send_time"])
                 text_msglist.tag_config("green", foreground='green')
                 text_msglist.insert(END, record_from, 'green')
-                text_msglist.insert(END, "%s \n" % rec_data["send_content"])
-            except:
-                break
+                text_msglist.insert(END, "%s \n" % rec_msg["data"]["content"])
 
 
 HomePage(root)
-# PersonalView(root, "asd")
-# PersonalInfo(root,"asd")
-# ChatClient(root,"asd","asd")
 root.mainloop()
