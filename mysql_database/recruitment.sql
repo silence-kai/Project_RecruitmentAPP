@@ -33,7 +33,7 @@ CREATE TABLE `applicant` (
   `login_time` datetime DEFAULT NULL,
   `logout_time` datetime DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -42,7 +42,7 @@ CREATE TABLE `applicant` (
 
 LOCK TABLES `applicant` WRITE;
 /*!40000 ALTER TABLE `applicant` DISABLE KEYS */;
-INSERT INTO `applicant` VALUES (1,'张晓','111@163.com','测试',5000.00,'1234561',NULL,'2020-01-18 23:06:19','2020-01-18 23:06:19'),(2,'刘强','222@163.com','程序员',6000.00,'234567',NULL,'2020-01-18 23:06:19','2020-01-18 23:06:19'),(3,'付超','333@qq.com','测试',5000.00,'345678',NULL,'2020-01-18 23:06:19','2020-01-18 23:06:19'),(4,'尹婷','444@qq.com','架构师',5000.00,'456789',NULL,'2020-01-18 23:06:19','2020-01-18 23:06:19'),(5,'何丽','555@qq.com','秘书',5000.00,'567891',NULL,'2020-01-18 23:06:19','2020-01-18 23:06:19'),(6,'严蓉','666@qq.com','测试',5000.00,'678911',NULL,'2020-01-18 23:06:19','2020-01-18 23:06:19'),(7,'王俊文','777@163.com','程序员',5000.00,'789112',NULL,'2020-01-18 23:06:19','2020-01-18 23:06:19'),(22,'张凯','911077046@qq.com','开发工程师',15000.00,'123QWEasd','../FTP_store/911077046@qq.com',NULL,NULL);
+INSERT INTO `applicant` VALUES (1,'张晓','111@163.com','测试',5000.00,'1234561',NULL,'2020-01-18 23:06:19','2020-01-18 23:06:19'),(2,'刘强','222@163.com','程序员',6000.00,'234567',NULL,'2020-01-18 23:06:19','2020-01-18 23:06:19'),(3,'付超','333@qq.com','测试',5000.00,'345678',NULL,'2020-01-18 23:06:19','2020-01-18 23:06:19'),(4,'尹婷','444@qq.com','架构师',5000.00,'456789',NULL,'2020-01-18 23:06:19','2020-01-18 23:06:19'),(5,'何丽','555@qq.com','秘书',5000.00,'567891',NULL,'2020-01-18 23:06:19','2020-01-18 23:06:19'),(6,'严蓉','666@qq.com','测试',5000.00,'678911',NULL,'2020-01-18 23:06:19','2020-01-18 23:06:19'),(7,'王俊文','777@163.com','程序员',5000.00,'789112',NULL,'2020-01-18 23:06:19','2020-01-18 23:06:19'),(23,'zhangkai','911077046@qq.com','开发工程师',15000.00,'QWEasd123','../FTP_store/911077046@qq.com',NULL,NULL);
 /*!40000 ALTER TABLE `applicant` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -80,13 +80,13 @@ DROP TABLE IF EXISTS `chat_record`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `chat_record` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `char_id` int DEFAULT NULL,
-  `hr_id` int DEFAULT NULL,
-  `applicant_id` int DEFAULT NULL,
-  `type` enum('hr','applicant') DEFAULT NULL,
-  `content` text,
+  `content` text COMMENT '消息内容',
+  `isofflinemsg` tinyint(1) DEFAULT NULL COMMENT '是否为离线消息 0:离线 1:在线',
+  `from_account` varchar(20) DEFAULT NULL COMMENT '消息发送者',
+  `to_account` varchar(20) DEFAULT NULL COMMENT '消息接收者',
+  `send_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '消息接收者',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=141 DEFAULT CHARSET=utf8 COMMENT='聊天记录';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -95,6 +95,7 @@ CREATE TABLE `chat_record` (
 
 LOCK TABLES `chat_record` WRITE;
 /*!40000 ALTER TABLE `chat_record` DISABLE KEYS */;
+INSERT INTO `chat_record` VALUES (135,'你好啊',0,'911077046@qq.com','123@qq.com','2020-02-21 19:31:04'),(136,'我爱你',0,'911077046@qq.com','123@qq.com','2020-02-21 19:32:04'),(137,'我爱你',0,'123@qq.com','911077046@qq.com','2020-02-21 19:34:04'),(138,'你吃了吗',0,'123@qq.com','911077046@qq.com','2020-02-21 19:35:04'),(139,'how are you',0,'123@qq.com','911077046@qq.com','2020-02-21 19:35:04'),(140,'hello world',0,'123@qq.com','911077046@qq.com','2020-02-21 19:40:04');
 /*!40000 ALTER TABLE `chat_record` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -190,4 +191,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2020-02-18 19:28:55
+-- Dump completed on 2020-02-23  9:45:29

@@ -226,7 +226,6 @@ class PersonalView(Thread):
     ADDR = ('127.0.0.1', 8401)
     chat_sock = socket(AF_INET, SOCK_DGRAM)
 
-
     def __init__(self, master, account):
         super().__init__()
         self.window = master
@@ -241,8 +240,7 @@ class PersonalView(Thread):
         self.chat_info = ""
         self.choose_hr = ""
         self.hr_dict = {}
-        data = {"request_type": "e_login", "data": {"account": self.account}}
-        self.chat_sock.sendto(json.dumps(data).encode(), self.ADDR)
+
 
     def control_layout(self):
         Label(self.window, text='找工作，就来Hello Job!!!', font=("黑体", 25)).place(x=50, y=50)
@@ -342,13 +340,11 @@ class PersonalView(Thread):
     def treeviewClick(self, event):
         for item in self.data_tree.selection():
             self.choose_hr = self.data_tree.item(item, "values")
-        print(self.choose_hr)
+        global chat_obj
+        chat_obj = self.choose_hr
         if self.chat_info != self.choose_hr:
-            data = {"request_type": "p_get_record", "data":
-                {"From": self.choose_hr[4], "To": self.account}}
             tip = "与%s沟通中..." % self.choose_hr[4]
             self.tip_chat = Label(self.window, text=tip, font=("黑体", 15)).place(x=700, y=120)
-            # self.chat_sock.send(json.dumps(data).encode())
             self.text_msglist.delete('0.0', END)
             self.chat_info = self.choose_hr
 
@@ -375,7 +371,7 @@ class PersonalView(Thread):
         self.text_msg.delete('0.0', END)
 
     def run(self):
-        Receive(self.text_msglist, self.chat_sock,self.account)
+        Receive(self.text_msglist, self.chat_sock, self.account)
 
     def user_quit(self):
         self.window.destroy()
@@ -604,7 +600,6 @@ class EnterpriseView(Thread):
                  "wanted_salary": salary_range}}
         hj_sock.send(json.dumps(data).encode())
         rec_data = hj_sock.recv(1024 * 1024).decode()
-        print(rec_data)
         if rec_data == "get_applicant_failed":
             self.clear_data()
             tkinter.messagebox.showinfo(title='Hello Job', message='没有找到符合的求职者')
@@ -631,13 +626,11 @@ class EnterpriseView(Thread):
     def treeviewClick(self, event):
         for item in self.data_tree.selection():
             self.choose_info = self.data_tree.item(item, "values")
-        print(self.choose_info)
+        global chat_obj  # 将当前聊天对象变为全局对象，为让收消息得时候判断，
+        chat_obj = self.choose_info[0]
         if self.chat_info != self.choose_info:
-            data = {"request_type": "p_get_record", "data":
-                {"From": self.choose_info[0], "To": self.account}}
             tip = "与%s沟通中..." % self.choose_info[0]
             self.tip_chat = Label(self.window, text=tip, font=("黑体", 15)).place(x=700, y=120)
-            self.chat_sock.send(json.dumps(data).encode())
             self.text_msglist.delete('0.0', END)
             self.chat_info = self.choose_info
 
@@ -647,7 +640,6 @@ class EnterpriseView(Thread):
             {"account": self.choose_info[1]}}
         hj_sock.send(json.dumps(data).encode())
         save_path = tkinter.filedialog.asksaveasfilename(title='保存文件')
-        print(save_path)
         rec_data = hj_sock.recv(1024 * 1024).decode()
         if rec_data == "no_resume":
             tkinter.messagebox.showinfo(title='Error', message='改求职者没有上传简历')
@@ -680,7 +672,7 @@ class EnterpriseView(Thread):
     def run(self):
         data = {'request_type': "login_chat", "account": self.account}
         self.chat_sock.sendto(json.dumps(data).encode(), ADDR)
-        Receive(self.text_msglist, self.chat_sock,self.account)
+        Receive(self.text_msglist, self.chat_sock, self.account)
 
     def user_quit(self):
         self.window.destroy()
@@ -747,20 +739,28 @@ class AddPosition:
 # 收取聊天信息
 class Receive():
 
-    def __init__(self, text_msglist, chat_sock,account):
-        self.account =account
+    def __init__(self, text_msglist, chat_sock, account):
+        #登陆进来后，直接跟后台要离线记录。
+        ADDR = ('127.0.0.1', 8401)
+        self.account = account
+        data = {"request_type": "e_login", "data": {"account": self.account}}
+        chat_sock.sendto(json.dumps(data).encode(), ADDR)
         while True:
             data = chat_sock.recvfrom(1024 * 1024).decode()
             rec_msg = json.loads(data)
+            print(rec_msg)
             if rec_msg["msg_type"] == "offline_msg":
                 for item in rec_msg["data"]:
-                    with open("../chat_record/%s/%s"%(self.account,rec_msg["data"][0]),"a") as f:
-                        f.write("%s\n"%(json.dumps(item)))
+                    with open("../chat_record/%s/%s" % (self.account, rec_msg["data"][0]), "a") as f:
+                        f.write("%s\n" % (json.dumps(item)))
             if rec_msg["msg_type"] == "online_msg":
-                record_from = "%s %s\n" % (rec_msg["data"]["from"], rec_msg["dataa"]["send_time"])
-                text_msglist.tag_config("green", foreground='green')
-                text_msglist.insert(END, record_from, 'green')
-                text_msglist.insert(END, "%s \n" % rec_msg["data"]["content"])
+                with open("../chat_record/%s/%s" % (self.account, rec_msg["data"][0]), "a") as f:
+                    f.write("%s\n" % (data))
+                if rec_msg["data"][0] == chat_obj:
+                    record_from = "%s %s\n" % (rec_msg["data"][0], rec_msg["data"][1])
+                    text_msglist.tag_config("green", foreground='green')
+                    text_msglist.insert(END, record_from, 'green')
+                    text_msglist.insert(END, "%s \n" % rec_msg["data"][2])
 
 
 HomePage(root)

@@ -26,7 +26,7 @@ def p_login(account, addr, s):
     records = init_record(account)
     result = deal_chat_record(records)
     data = json.dumps({"msg_type":"offline_msg","data":result})
-    s.sendto(data, addr)
+    s.sendto(data.encode(), addr)
     # 发送完离线消息把离线消息转为在线消息
     ChatRecord(db).update_record(account)
 
@@ -37,7 +37,7 @@ def e_login(account, addr, s):
     records = init_record(account)
     result = deal_chat_record(records)
     data = json.dumps({"msg_type":"offline_msg","data":result})
-    s.sendto(data, addr)
+    s.sendto(data.encode(), addr)
     #发送完离线消息把离线消息转为在线消息
     ChatRecord(db).update_record(account)
 
@@ -89,7 +89,9 @@ def do_chat(s, fromaccount, text, toaccount, send_time, addr):
             ChatRecord(db).insert_record(fromaccount, toaccount, text, 1, send_time)
         else:
             ChatRecord(db).insert_record(fromaccount, toaccount, text, 1, send_time)
-        s.sendto(msg.encode(), addr)
+
+        data = {"msg_type":"online_msg","data":msg}
+        s.sendto(json.dumps(data).encode(), addr)
 
 
 # 接受请求，分发任务
@@ -97,7 +99,7 @@ def do_request(s):
     while True:
         # 所有请求都在这里接受
         data, addr = s.recvfrom(1024)
-        recv_msg = json.loads(data)
+        recv_msg = json.loads(data.decode())
         request = recv_msg["request_type"]
         data = recv_msg["data"]
         # 求职者登陆
